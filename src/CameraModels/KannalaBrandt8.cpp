@@ -531,6 +531,10 @@ namespace ORB_SLAM3 {
 
         cv::SVD::compute(A,w,u,vt,cv::SVD::MODIFY_A| cv::SVD::FULL_UV);
         cv::Matx41f x3D_h = vt.row(3).t();
-        x3D = x3D_h.get_minor<3,1>(0,0) / x3D_h(3);
+        x3D = x3D_h.get_minor<3,1>(0,0);
+        double ix3d3 = 1.0 / x3D_h(3);
+        for (int i = 0; i < 3; ++i) {
+            x3D(i) = x3D(i) * ix3d3;
+        }
     }
 }
