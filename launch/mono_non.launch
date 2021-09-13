@@ -1,0 +1,10 @@
+<launch>
+    <arg name="vocabulary" default = "/home/tonglu/github/slam/ORB_SLAM3/Vocabulary/ORBvoc.bin" />
+    <arg name="yaml_conf" default = "/home/tonglu/github/slam/ORB_SLAM3/Examples/Monocular/nondistor.yaml" />
+    
+    <node name="Mono" pkg="ORB_SLAM3" type="Mono" output="screen">
+        <param name="vocabulary" type="string" value="$(arg vocabulary)" />
+        <param name="yaml_conf" type="string" value="$(arg yaml_conf)" />
+        <param name="type" type="int" value="1" />
+    </node>
+</launch>
