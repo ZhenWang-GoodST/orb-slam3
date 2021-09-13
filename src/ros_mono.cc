@@ -55,7 +55,7 @@ int main(int argc, char **argv)
     //     return 1;
     // }    
     ros::NodeHandle nodeHandler;
-    std::string vocabulary = "/home/tonglu/github/slam/ros/ORB_SLAM3/ORB_SLAM3/Vocabulary/ORBvoc.bin";
+    std::string vocabulary = "/home/tonglu/github/slam/ros/ORB_SLAM3/ORB_SLAM3/Vocabulary/ORBvoc.txt";
     std::string yaml_conf = "/home/tonglu/github/slam/ros/ORB_SLAM3/ORB_SLAM3/Examples/Monocular/EuRoC.yaml";
     // nodeHandler.param("/Mono/vocabulary", vocabulary, std::string("vocabulary"));
     // nodeHandler.param("/Mono/yaml_conf", yaml_conf, std::string("yaml"));

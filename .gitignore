@@ -86,3 +86,5 @@ ORB_SLAM3/Thirdparty/g2o/lib/
 ORB_SLAM3/Vocabulary/ORBvoc.txt
 ORB_SLAM3/Examples/core
 
+build_release
+
