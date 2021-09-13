@@ -7,8 +7,8 @@ find_package(catkin REQUIRED COMPONENTS
 add_definitions(-w)
 
 
-set(OpenCV_DIR "/home/tonglu/github/install/opencv3.2.0/share/OpenCV")
-find_package(OpenCV 3.2.0 QUIET)
+# set(OpenCV_DIR "/home/tonglu/github/install/opencv3.2.0/share/OpenCV")
+find_package(OpenCV 3.0 QUIET)
 if(NOT OpenCV_FOUND)
    find_package(OpenCV 2.4.3 QUIET)
    if(NOT OpenCV_FOUND)
@@ -22,7 +22,7 @@ find_package(PCL REQUIRED)
 find_package(Pangolin REQUIRED)
 find_package(CGAL COMPONENTS Core)
 
-set(ORB_SOURCE_DIR /home/tonglu/github/slam/ORB_SLAM3/)
+set(ORB_SOURCE_DIR /home/tonglu/VO-LOAM/github/tmp/orb-slam3/ORB_SLAM3/)
 
 include_directories(
 ${PROJECT_SOURCE_DIR}/ORB_SLAM3
@@ -52,11 +52,11 @@ ${EIGEN3_LIBS}
 ${Pangolin_LIBRARIES}
 ${ORB_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
 ${ORB_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
-${ORB_SOURCE_DIR}/Thirdparty/utils/lib/libutils.so
+# ${ORB_SOURCE_DIR}/Thirdparty/utils/lib/libutils.so
 -lboost_serialization
 -lcrypto
-${PCL_LIBRARIES}
-${catkin_LIBRARIES}
+# ${PCL_LIBRARIES}
+# ${catkin_LIBRARIES}
 )
 
 set(LIBS 
@@ -69,6 +69,8 @@ orb_debug
 # ${PROJECT_SOURCE_DIR} ORB_SLAM3/lib/libORB_SLAM3.so
 -lboost_system
 CGAL::CGAL CGAL::CGAL_Core
+${PCL_LIBRARIES}
+${catkin_LIBRARIES}
 )
 
 # # Node for monocular camera
