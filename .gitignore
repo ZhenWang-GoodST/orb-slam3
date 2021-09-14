@@ -39,7 +39,7 @@ Thirdparty/g2o/config.h
 Thirdparty/g2o/lib/
 Vocabulary/ORBvoc.txt
 build/
-build_release/
+buildrelease/
 
 lib/
 
@@ -48,6 +48,7 @@ cmake-build-debug/
 
 *.pyc
 *.osa
+.vscode
 
 
 ORB_SLAM3/Examples/RGB-D/rgbd_tum

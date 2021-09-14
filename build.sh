@@ -15,6 +15,15 @@ cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release
 make -j
 
+cd ../../utils
+
+echo "Configuring and building Thirdparty/g2o ..."
+
+mkdir build
+cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+make -j
+
 cd ../../../
 
 echo "Uncompress vocabulary ..."
@@ -25,7 +34,7 @@ cd ..
 
 echo "Configuring and building ORB_SLAM3 ..."
 
-mkdir build_release
-cd build_release
+mkdir buildrelease
+cd buildrelease
 cmake .. -DCMAKE_BUILD_TYPE=Release
 make -j

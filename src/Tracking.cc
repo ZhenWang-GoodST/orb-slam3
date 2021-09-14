@@ -36,6 +36,7 @@
 #include <include/CameraModels/Pinhole.h>
 #include <include/CameraModels/KannalaBrandt8.h>
 #include <include/MLPnPsolver.h>
+#include <orb_utils.h>
 
 using namespace std;
 
@@ -2330,6 +2331,12 @@ void Tracking::MonocularInitialization()
         // Find correspondences
         ORBmatcher matcher(0.9,true);
         int nmatches = matcher.SearchForInitialization(mInitialFrame,mCurrentFrame,mvbPrevMatched,mvIniMatches,100);
+        cv::Mat show_map;
+        cv::namedWindow("show_map", cv::WINDOW_NORMAL);
+        tergeo::visualodometry::drawMatchPts(mInitialFrame.monoImage, mCurrentFrame.monoImage, show_map, mInitialFrame.mvKeysUn, mCurrentFrame.mvKeysUn,mvIniMatches, cv::Scalar(0, 255, 0), true);
+        std::cout << show_map.size() << "\n";
+        cv::imshow("show_map", show_map);
+        cv::waitKey(1);
 
         // Check if there are enough correspondences
         if(nmatches<100)

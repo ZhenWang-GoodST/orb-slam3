@@ -307,6 +307,8 @@ public:
 
     cv::Mat UnprojectStereoFishEye(const int &i);
 
+    cv::Mat monoImage;
+
     cv::Mat imgLeft, imgRight;
 
     void PrintPointDistribution(){
