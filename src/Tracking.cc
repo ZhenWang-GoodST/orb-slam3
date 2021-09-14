@@ -2334,12 +2334,13 @@ void Tracking::MonocularInitialization()
         cv::Mat show_map;
         cv::namedWindow("show_map", cv::WINDOW_NORMAL);
         tergeo::visualodometry::drawMatchPts(mInitialFrame.monoImage, mCurrentFrame.monoImage, show_map, mInitialFrame.mvKeysUn, mCurrentFrame.mvKeysUn,mvIniMatches, cv::Scalar(0, 255, 0), true);
-        std::cout << show_map.size() << "\n";
+        // std::cout << show_map.size() << "\n";
         cv::imshow("show_map", show_map);
         cv::waitKey(1);
+        std::cout << "nmatches: " << nmatches << "\n"; 
 
         // Check if there are enough correspondences
-        if(nmatches<100)
+        if(nmatches<50)
         {
             delete mpInitializer;
             mpInitializer = static_cast<Initializer*>(NULL);
@@ -2350,8 +2351,9 @@ void Tracking::MonocularInitialization()
         cv::Mat Rcw; // Current Camera Rotation
         cv::Mat tcw; // Current Camera Translation
         vector<bool> vbTriangulated; // Triangulated Correspondences (mvIniMatches)
+        bool res = mpCamera->ReconstructWithTwoViews(mInitialFrame.mvKeysUn,mCurrentFrame.mvKeysUn,mvIniMatches,Rcw,tcw,mvIniP3D,vbTriangulated);
 
-        if(mpCamera->ReconstructWithTwoViews(mInitialFrame.mvKeysUn,mCurrentFrame.mvKeysUn,mvIniMatches,Rcw,tcw,mvIniP3D,vbTriangulated))
+        if(res)
         {
             for(size_t i=0, iend=mvIniMatches.size(); i<iend;i++)
             {
@@ -2371,6 +2373,8 @@ void Tracking::MonocularInitialization()
 
             CreateInitialMapMonocular();
 
+        } else {
+            std::cout << "initilize failed\n";
         }
     }
 }

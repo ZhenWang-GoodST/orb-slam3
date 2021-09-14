@@ -45,7 +45,7 @@ void drawMatchPts(
         left.copyTo(show_image(rect1));
         right.copyTo(show_image(rect2));
     }
-    std::cout << show_image.size() << "\n";
+    // std::cout << show_image.size() << "\n";
     for (int i = 0; i < pt_size; ++i) {
         if (indices[i] < 0) continue;
         cv::Point2f pt1 = p1[i].pt;
@@ -58,7 +58,7 @@ void drawMatchPts(
     //     } 
         cv::line(show_image, pt1, pt2, color);
         cv::circle(show_image, pt1, p1[i].size, cv::Scalar(0, 255, 0));
-        cv::imshow("matched", show_image);
+        // cv::imshow("matched", show_image);
         // cv::waitKey();
     }
 }

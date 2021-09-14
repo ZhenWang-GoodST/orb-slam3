@@ -29,6 +29,7 @@
 
 // #include"../../../include/System.h"
 #include "include/System.h"
+#include "orb_utils.h"
 
 using namespace std;
 
@@ -55,8 +56,10 @@ int main(int argc, char **argv)
     // }    
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    std::string voculbary = "/home/tonglu/VO-LOAM/github/tmp/orb-slam3/Vocabulary/ORBvoc.bin";
-    std::string yaml_conf = "/home/tonglu/VO-LOAM/github/tmp/orb-slam3/Examples/Monocular/EuRoC.yaml";
+    std::string voculbary = "/home/tonglu/VO-LOAM/github/orb-slam3/Vocabulary/ORBvoc.bin";
+    std::string yaml_conf = "/home/tonglu/VO-LOAM/github/orb-slam3/Examples/Monocular/EuRoC.yaml";
+    readParameter("yaml", yaml_conf);
+    std::cout << "yaml : " << yaml_conf << "\n";
     ORB_SLAM3::System SLAM(voculbary,yaml_conf,ORB_SLAM3::System::MONOCULAR,true);
 
     ImageGrabber igb(&SLAM);

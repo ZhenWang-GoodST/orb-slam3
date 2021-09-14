@@ -519,6 +519,7 @@ bool TwoViewReconstruction::ReconstructF(vector<bool> &vbMatchesInliers, cv::Mat
         nsimilar++;
 
     // If there is not a clear winner or not enough triangulated points reject initialization
+    std::cout << maxGood << " " << nsimilar << "\n";
     if(maxGood<nMinGood || nsimilar>1)
     {
         return false;

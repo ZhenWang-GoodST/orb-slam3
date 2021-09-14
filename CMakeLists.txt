@@ -135,6 +135,7 @@ ${PROJECT_SOURCE_DIR}/Thirdparty/utils/lib/libutils.so
 find_package(catkin REQUIRED COMPONENTS
   roscpp pcl_ros sensor_msgs cv_bridge
 )
+find_package(CGAL COMPONENTS Core)
 set(LIBS 
 ${OpenCV_LIBS} 
 ${EIGEN3_LIBS}
@@ -144,6 +145,7 @@ ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
 ${PROJECT_NAME}
 -lboost_system
 ${catkin_LIBRARIES}
+CGAL::CGAL CGAL::CGAL_Core
 )
 include_directories(${catkin_INCLUDE_DIRS})
 add_executable(Mono ${PROJECT_SOURCE_DIR}/Examples/ROS/ORB_SLAM3/src/ros_mono.cc)

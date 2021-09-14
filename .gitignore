@@ -49,6 +49,7 @@ cmake-build-debug/
 *.pyc
 *.osa
 .vscode
+core
 
 
 ORB_SLAM3/Examples/RGB-D/rgbd_tum
