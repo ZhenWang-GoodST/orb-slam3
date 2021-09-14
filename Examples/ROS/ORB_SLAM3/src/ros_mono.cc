@@ -27,7 +27,8 @@
 
 #include<opencv2/core/core.hpp>
 
-#include"../../../include/System.h"
+// #include"../../../include/System.h"
+#include "include/System.h"
 
 using namespace std;
 
@@ -46,15 +47,17 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "Mono");
     ros::start();
 
-    if(argc != 3)
-    {
-        cerr << endl << "Usage: rosrun ORB_SLAM3 Mono path_to_vocabulary path_to_settings" << endl;        
-        ros::shutdown();
-        return 1;
-    }    
+    // if(argc != 3)
+    // {
+    //     cerr << endl << "Usage: rosrun ORB_SLAM3 Mono path_to_vocabulary path_to_settings" << endl;        
+    //     ros::shutdown();
+    //     return 1;
+    // }    
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM3::System SLAM(argv[1],argv[2],ORB_SLAM3::System::MONOCULAR,true);
+    std::string voculbary = "/home/tonglu/VO-LOAM/github/tmp/orb-slam3/Vocabulary/ORBvoc.bin";
+    std::string yaml_conf = "/home/tonglu/VO-LOAM/github/tmp/orb-slam3/Examples/Monocular/EuRoC.yaml";
+    ORB_SLAM3::System SLAM(voculbary,yaml_conf,ORB_SLAM3::System::MONOCULAR,true);
 
     ImageGrabber igb(&SLAM);
 

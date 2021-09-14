@@ -25,7 +25,7 @@ cd ..
 
 echo "Configuring and building ORB_SLAM3 ..."
 
-mkdir build
-cd build
+mkdir build_release
+cd build_release
 cmake .. -DCMAKE_BUILD_TYPE=Release
 make -j
