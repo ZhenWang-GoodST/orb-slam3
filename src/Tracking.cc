@@ -2332,7 +2332,7 @@ void Tracking::MonocularInitialization()
         ORBmatcher matcher(0.9,true);
         int nmatches = matcher.SearchForInitialization(mInitialFrame,mCurrentFrame,mvbPrevMatched,mvIniMatches,100);
         cv::Mat show_map;
-        cv::namedWindow("show_map", cv::WINDOW_NORMAL);
+        // cv::namedWindow("show_map", cv::WINDOW_NORMAL);
         tergeo::visualodometry::drawMatchPts(mInitialFrame.monoImage, mCurrentFrame.monoImage, show_map, mInitialFrame.mvKeysUn, mCurrentFrame.mvKeysUn,mvIniMatches, cv::Scalar(0, 255, 0), true);
         // std::cout << show_map.size() << "\n";
         cv::imshow("show_map", show_map);

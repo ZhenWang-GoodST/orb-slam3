@@ -27,6 +27,8 @@
 
 #include<System.h>
 
+#include "orb_utils.h"
+
 using namespace std;
 
 void LoadImages(const string &strImagePath, const string &strPathTimes,
@@ -34,24 +36,26 @@ void LoadImages(const string &strImagePath, const string &strPathTimes,
 
 int main(int argc, char **argv)
 {  
-    if(argc < 5)
-    {
-        cerr << endl << "Usage: ./mono_euroc path_to_vocabulary path_to_settings path_to_sequence_folder_1 path_to_times_file_1 (path_to_image_folder_2 path_to_times_file_2 ... path_to_image_folder_N path_to_times_file_N) (trajectory_file_name)" << endl;
-        return 1;
-    }
+    // if(argc < 5)
+    // {
+    //     cerr << endl << "Usage: ./mono_euroc path_to_vocabulary path_to_settings path_to_sequence_folder_1 path_to_times_file_1 (path_to_image_folder_2 path_to_times_file_2 ... path_to_image_folder_N path_to_times_file_N) (trajectory_file_name)" << endl;
+    //     return 1;
+    // }
 
-    const int num_seq = (argc-3)/2;
+    // const int num_seq = (argc-3)/2;
+    int num_seq;
+    readParameter<int>("num_seq", num_seq);
     cout << "num_seq = " << num_seq << endl;
     bool bFileName= (((argc-3) % 2) == 1);
     string file_name;
     if (bFileName)
     {
-        file_name = string(argv[argc-1]);
+        file_name = "/home/tonglu/VO-LOAM/github/orb-slam3/KeyFrameTrajectory.txt";
         cout << "file name: " << file_name << endl;
     }
 
     // Load all sequences:
-    int seq;
+    int seq = 1;
     vector< vector<string> > vstrImageFilenames;
     vector< vector<double> > vTimestampsCam;
     vector<int> nImages;
@@ -61,10 +65,14 @@ int main(int argc, char **argv)
     nImages.resize(num_seq);
 
     int tot_images = 0;
+    std::string imagepath = "";
+    std::string stamppath = "";
+    readParameter<std::string>("imagepath", imagepath);
+    readParameter<std::string>("stamppath", stamppath);
     for (seq = 0; seq<num_seq; seq++)
     {
         cout << "Loading images for sequence " << seq << "...";
-        LoadImages(string(argv[(2*seq)+3]) + "/mav0/cam0/data", string(argv[(2*seq)+4]), vstrImageFilenames[seq], vTimestampsCam[seq]);
+        LoadImages(imagepath + "/mav0/cam0/data", stamppath, vstrImageFilenames[seq], vTimestampsCam[seq]);
         cout << "LOADED!" << endl;
 
         nImages[seq] = vstrImageFilenames[seq].size();
@@ -79,7 +87,11 @@ int main(int argc, char **argv)
     cout.precision(17);
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM3::System SLAM(argv[1],argv[2],ORB_SLAM3::System::MONOCULAR, true);
+    std::string yaml = "";
+    std::string vocabulary = "";
+    readParameter<std::string>("yaml", yaml);
+    readParameter<std::string>("vocabulary", vocabulary);
+    ORB_SLAM3::System SLAM(vocabulary,yaml,ORB_SLAM3::System::MONOCULAR, true);
 
     for (seq = 0; seq<num_seq; seq++)
     {
