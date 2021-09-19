@@ -5,6 +5,12 @@
 #include "dirent.h"
 
 
+int createFolders(const char* dir){
+  char order[100] = "mkdir -p ";
+  strcat(order, dir); 
+  return system(order);
+} 
+
 std::vector<std::string> listdir(const std::string &path) {
     DIR *dp;
     struct dirent *dirp;

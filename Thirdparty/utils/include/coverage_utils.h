@@ -6,15 +6,15 @@
 #include <algorithm>
 #include <cmath>
 #include <opencv2/opencv.hpp>
-#include <CGAL/Exact_predicates_exact_constructions_kernel.h>
-#include <CGAL/Boolean_set_operations_2.h>
-#include <CGAL/squared_distance_2.h>
-typedef CGAL::Exact_predicates_exact_constructions_kernel Kernel;
-typedef Kernel::Point_2                                   Point_2;
-typedef CGAL::Polygon_2<Kernel>                           Polygon_2;
-typedef CGAL::Segment_2<Kernel>                           Segment_2;
-typedef CGAL::Polygon_with_holes_2<Kernel>                Polygon_with_holes_2;
-typedef std::vector<Polygon_with_holes_2>                 Pwh_list_2;
+// #include <CGAL/Exact_predicates_exact_constructions_kernel.h>
+// #include <CGAL/Boolean_set_operations_2.h>
+// #include <CGAL/squared_distance_2.h>
+// typedef CGAL::Exact_predicates_exact_constructions_kernel Kernel;
+// typedef Kernel::Point_2                                   Point_2;
+// typedef CGAL::Polygon_2<Kernel>                           Polygon_2;
+// typedef CGAL::Segment_2<Kernel>                           Segment_2;
+// typedef CGAL::Polygon_with_holes_2<Kernel>                Polygon_with_holes_2;
+// typedef std::vector<Polygon_with_holes_2>                 Pwh_list_2;
 
 namespace tergeo{
 namespace visualodometry{

@@ -2331,16 +2331,9 @@ void Tracking::MonocularInitialization()
         // Find correspondences
         ORBmatcher matcher(0.9,true);
         int nmatches = matcher.SearchForInitialization(mInitialFrame,mCurrentFrame,mvbPrevMatched,mvIniMatches,100);
-        cv::Mat show_map;
-        // cv::namedWindow("show_map", cv::WINDOW_NORMAL);
-        tergeo::visualodometry::drawMatchPts(mInitialFrame.monoImage, mCurrentFrame.monoImage, show_map, mInitialFrame.mvKeysUn, mCurrentFrame.mvKeysUn,mvIniMatches, cv::Scalar(0, 255, 0), true);
-        // std::cout << show_map.size() << "\n";
-        cv::imshow("show_map", show_map);
-        cv::waitKey(1);
-        std::cout << "nmatches: " << nmatches << "\n"; 
 
         // Check if there are enough correspondences
-        if(nmatches<50)
+        if(nmatches<100)
         {
             delete mpInitializer;
             mpInitializer = static_cast<Initializer*>(NULL);
@@ -2355,6 +2348,25 @@ void Tracking::MonocularInitialization()
 
         if(res)
         {
+            cv::Mat show_map;
+            // cv::namedWindow("show_map", cv::WINDOW_NORMAL);
+            tergeo::visualodometry::drawMatchPts(mInitialFrame.monoImage, mCurrentFrame.monoImage, show_map, mInitialFrame.mvKeysUn, mCurrentFrame.mvKeysUn,mvIniMatches, cv::Scalar(0, 255, 0), true);
+            // std::cout << show_map.size() << "\n";
+            cv::imshow("show_map", show_map);
+            cv::waitKey(1);
+            std::cout << "nmatches: " << nmatches << "\n"; 
+            std::string output_path = "/home/tonglu/VO-LOAM/log/" + std::to_string(clock()) + "/";
+            std::cout << "output to: " << output_path << "\n";
+            createFolders(output_path.c_str());
+            std::ofstream of(output_path + "initilize.txt");
+            cv::imwrite(output_path + "match.jpg", show_map);
+            cv::imwrite(output_path + "left.jpg", mInitialFrame.monoImage);
+            cv::imwrite(output_path + "right.jpg", mCurrentFrame.monoImage);
+            of << "success initilized at mInitialFrame stamp " << std::setw(20) << std::setprecision(20) << std::to_string(mInitialFrame.mTimeStamp) << " , filename:" << mInitialFrame.mNameFile << "\n";
+            of << "success initilized at mCurrentFrame stamp " << std::setw(20) << std::setprecision(20) << std::to_string(mCurrentFrame.mTimeStamp) << " , filename:" << mCurrentFrame.mNameFile << "\n";
+            of.close();
+            mpCamera->ReconstructWithTwoViews(mInitialFrame.mvKeysUn,mCurrentFrame.mvKeysUn,mvIniMatches,Rcw,tcw,mvIniP3D,vbTriangulated);
+            std::cout << "success initilized at stamp " << mInitialFrame.mTimeStamp << " , filename:" << mInitialFrame.mNameFile << "\n";
             for(size_t i=0, iend=mvIniMatches.size(); i<iend;i++)
             {
                 if(mvIniMatches[i]>=0 && !vbTriangulated[i])

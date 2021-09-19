@@ -59,6 +59,29 @@ ${PROJECT_SOURCE_DIR}/Thirdparty/utils/include
 )
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
+find_package(catkin REQUIRED COMPONENTS
+  roscpp pcl_ros sensor_msgs
+)
+find_package(Ceres)
+include_directories(
+  ${PROJECT_SOURCE_DIR}/Thirdparty/utils/include
+  ${catkin_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS} 
+  ${EIGEN3_INCLUDE_DIR}
+  # ${OMPL_INCLUDE_DIRS}
+  ${PCL_INCLUDE_DIRS}
+  ${CERES_INCLUDE_DIRS}
+# /home/wz/github/install/ceres_docker/include
+)
+file(GLOB_RECURSE UTILS ${PROJECT_SOURCE_DIR}/Thirdparty/utils/src/*cpp)
+file(GLOB_RECURSE NODE_SRCS ${PROJECT_SOURCE_DIR}/Thirdparty/utils/src/*_node.cpp)
+list(REMOVE_ITEM UTILS ${NODE_SRCS})
+add_library(utils ${UTILS})
+target_link_libraries(utils 
+${CERES_LIBRARIES}
+${catkin_LIBRARIES}
+${OpenCV_LIBRARIES}
+)
 
 add_library(${PROJECT_NAME} SHARED
 src/System.cc
@@ -125,18 +148,19 @@ ${EIGEN3_LIBS}
 ${Pangolin_LIBRARIES}
 ${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
 ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
-${PROJECT_SOURCE_DIR}/Thirdparty/utils/lib/libutils.so
+utils
+# ${PROJECT_SOURCE_DIR}/Thirdparty/utils/lib/libutils.so
 -lboost_serialization
 -lcrypto
-CGAL::CGAL CGAL::CGAL_Core
+# CGAL::CGAL CGAL::CGAL_Core
 )
 
 
 ### Build examples
-find_package(catkin REQUIRED COMPONENTS
-  roscpp pcl_ros sensor_msgs cv_bridge
-)
-find_package(CGAL COMPONENTS Core)
+# find_package(catkin REQUIRED COMPONENTS
+#   roscpp pcl_ros sensor_msgs cv_bridge
+# )
+# find_package(CGAL COMPONENTS Core)
 set(LIBS 
 ${OpenCV_LIBS} 
 ${EIGEN3_LIBS}

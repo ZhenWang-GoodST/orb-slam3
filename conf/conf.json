@@ -1,6 +1,6 @@
 {
-    "yaml1": "/home/tonglu/VO-LOAM/github/orb-slam3/Examples/Monocular/EuRoC.yaml",
-    "yaml": "/home/tonglu/VO-LOAM/github/orb-slam3/conf/myrealsense.yaml",
+    "yaml": "/home/tonglu/VO-LOAM/github/orb-slam3/Examples/Monocular/EuRoC.yaml",
+    "yaml1": "/home/tonglu/VO-LOAM/github/orb-slam3/conf/myrealsense.yaml",
     "vocabulary" : "/home/tonglu/VO-LOAM/github/orb-slam3/Vocabulary/ORBvoc.bin",
     "imagepath":"/media/tonglu/新加卷/data/opensource/MH_01_easy/MH_01_easy",
     "stamppath": "/home/tonglu/VO-LOAM/github/orb-slam3/Examples/Monocular/EuRoC_TimeStamps/MH01.txt",

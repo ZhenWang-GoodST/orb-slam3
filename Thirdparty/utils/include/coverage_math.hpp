@@ -6,42 +6,42 @@
 #include <algorithm>
 #include <cmath>
 #include <opencv2/opencv.hpp>
-#include <ompl/base/spaces/DubinsStateSpace.h>
-#include <ompl/geometric/SimpleSetup.h>
-#include <CGAL/Exact_predicates_exact_constructions_kernel.h>
-#include <CGAL/Boolean_set_operations_2.h>
-#include <CGAL/squared_distance_2.h>
-typedef CGAL::Exact_predicates_exact_constructions_kernel Kernel;
-typedef Kernel::Point_2                                   Point_2;
-typedef CGAL::Polygon_2<Kernel>                           Polygon_2;
-typedef CGAL::Segment_2<Kernel>                           Segment_2;
-typedef CGAL::Polygon_with_holes_2<Kernel>                Polygon_with_holes_2;
-typedef std::vector<Polygon_with_holes_2>                 Pwh_list_2;
+// #include <ompl/base/spaces/DubinsStateSpace.h>
+// #include <ompl/geometric/SimpleSetup.h>
+// #include <CGAL/Exact_predicates_exact_constructions_kernel.h>
+// #include <CGAL/Boolean_set_operations_2.h>
+// #include <CGAL/squared_distance_2.h>
+// typedef CGAL::Exact_predicates_exact_constructions_kernel Kernel;
+// typedef Kernel::Point_2                                   Point_2;
+// typedef CGAL::Polygon_2<Kernel>                           Polygon_2;
+// typedef CGAL::Segment_2<Kernel>                           Segment_2;
+// typedef CGAL::Polygon_with_holes_2<Kernel>                Polygon_with_holes_2;
+// typedef std::vector<Polygon_with_holes_2>                 Pwh_list_2;
 namespace tergeo{
 namespace visualodometry{
 
-template <typename T>
-void toClockWise(std::vector<T> &in_p) {
-    Polygon_2 P;
-    for (int i=0; i < in_p.size(); ++i) {
-        P.push_back(Point_2(in_p[i].x, in_p[i].y));
-    }
-    if (!P.is_clockwise_oriented()) {
-        reverse(in_p.begin(), in_p.end());
-    } 
-}
+// template <typename T>
+// void toClockWise(std::vector<T> &in_p) {
+//     Polygon_2 P;
+//     for (int i=0; i < in_p.size(); ++i) {
+//         P.push_back(Point_2(in_p[i].x, in_p[i].y));
+//     }
+//     if (!P.is_clockwise_oriented()) {
+//         reverse(in_p.begin(), in_p.end());
+//     } 
+// }
 
 
-template <typename T>
-void toCounterClockWise(std::vector<T> &in_p) {
-    Polygon_2 P;
-    for (int i=0; i < in_p.size(); ++i) {
-        P.push_back(Point_2(in_p[i].x, in_p[i].y));
-    }
-    if (P.is_clockwise_oriented()) {
-        reverse(in_p.begin(), in_p.end());
-    } 
-}
+// template <typename T>
+// void toCounterClockWise(std::vector<T> &in_p) {
+//     Polygon_2 P;
+//     for (int i=0; i < in_p.size(); ++i) {
+//         P.push_back(Point_2(in_p[i].x, in_p[i].y));
+//     }
+//     if (P.is_clockwise_oriented()) {
+//         reverse(in_p.begin(), in_p.end());
+//     } 
+// }
 
 template <typename T>//counterclockwise
 double angle(T p1, T p2, T p3, T p4) {
