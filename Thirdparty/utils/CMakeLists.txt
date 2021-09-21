@@ -69,7 +69,7 @@ target_link_libraries(utils
 ${CERES_LIBRARIES}
 ${catkin_LIBRARIES}
 ${OpenCV_LIBRARIES}
-CGAL::CGAL CGAL::CGAL_Core
+# CGAL::CGAL CGAL::CGAL_Core
 )
 # add_library(optimizer STATIC 
 # src/optimizer/optimizer.cpp

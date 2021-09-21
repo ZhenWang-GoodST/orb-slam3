@@ -122,7 +122,7 @@ bool TwoViewReconstruction::Reconstruct(const std::vector<cv::KeyPoint>& vKeys1,
     else //if(pF_HF>0.6)
     {
         //cout << "Initialization from Fundamental" << endl;
-        return ReconstructF(vbMatchesInliersF,F,mK,R21,t21,vP3D,vbTriangulated,minParallax,50);
+        return ReconstructF(vbMatchesInliersF,F,mK,R21,t21,vP3D,vbTriangulated,minParallax,25);
     }
 }
 
@@ -471,7 +471,8 @@ float TwoViewReconstruction::CheckFundamental(const cv::Mat &F21, vector<bool> &
 
     return score;
 }
-
+#pragma GCC push_options
+#pragma GCC optimize (0)
 bool TwoViewReconstruction::ReconstructF(vector<bool> &vbMatchesInliers, cv::Mat &F21, cv::Mat &K,
                             cv::Mat &R21, cv::Mat &t21, vector<cv::Point3f> &vP3D, vector<bool> &vbTriangulated, float minParallax, int minTriangulated)
 {
@@ -575,6 +576,7 @@ bool TwoViewReconstruction::ReconstructF(vector<bool> &vbMatchesInliers, cv::Mat
     return false;
 }
 
+#pragma GCC pop_options
 bool TwoViewReconstruction::ReconstructH(vector<bool> &vbMatchesInliers, cv::Mat &H21, cv::Mat &K,
                       cv::Mat &R21, cv::Mat &t21, vector<cv::Point3f> &vP3D, vector<bool> &vbTriangulated, float minParallax, int minTriangulated)
 {

@@ -11,6 +11,9 @@ void drawMatchPts(
     const std::vector<cv::Point2f> &p1, const std::vector<cv::Point2f> &p2,
     cv::Scalar color = cv::Scalar(0, 255, 0), bool update = true);
 
+void drawKeyPts(
+    cv::Mat &image, const std::vector<cv::KeyPoint> &pts, int size, const  cv::Scalar color = cv::Scalar(0, 255, 0));
+
 void drawMatchPts(
     const cv::Mat &left, const cv::Mat &right, cv::Mat &show_image,
     const std::vector<cv::KeyPoint> &p1, const std::vector<cv::KeyPoint> &p2,

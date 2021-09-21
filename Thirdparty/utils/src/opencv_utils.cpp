@@ -26,7 +26,7 @@ void drawMatchPts(
     //         color = cv::Scalar(0, 255, 0);
     //     } 
         cv::line(show_image, pt1, pt2, color);
-        cv::circle(show_image, pt1, 20, cv::Scalar(0, 255, 0));
+        // cv::circle(show_image, pt1, 20, cv::Scalar(0, 255, 0));
         // cv::imshow("matched", show_image);
         // cv::waitKey();
     }
@@ -46,6 +46,7 @@ void drawMatchPts(
         right.copyTo(show_image(rect2));
     }
     // std::cout << show_image.size() << "\n";
+    int size = 5;
     for (int i = 0; i < pt_size; ++i) {
         if (indices[i] < 0) continue;
         cv::Point2f pt1 = p1[i].pt;
@@ -56,11 +57,25 @@ void drawMatchPts(
     //     } else if (mask[i] == 1){
     //         color = cv::Scalar(0, 255, 0);
     //     } 
-        cv::line(show_image, pt1, pt2, color);
-        cv::circle(show_image, pt1, p1[i].size, cv::Scalar(0, 255, 0));
+        cv::line(show_image, pt1, pt2, cv::Scalar(0, 0, 0));
+        cv::rectangle(show_image, cv::Rect(pt1.x - size, pt1.y - size, size * 2, size * 2), color);
+        cv::rectangle(show_image, cv::Rect(pt2.x - size, pt2.y - size, size * 2, size * 2), color);
+        // cv::circle(show_image, pt1, p1[i].size, cv::Scalar(0, 255, 0));
         // cv::imshow("matched", show_image);
         // cv::waitKey();
     }
+}
+
+void drawKeyPts(
+    cv::Mat &image, const std::vector<cv::KeyPoint> &pts, int size, const  cv::Scalar color) {
+    int count = 0;
+    for (int i = 0; i < pts.size(); ++i) {
+        cv::rectangle(image, cv::Rect(pts[i].pt.x - size, pts[i].pt.y - size, size * 2, size * 2), color);
+        // cv::imshow("key", image);
+        // cv::waitKey();
+        count += 1;
+    }
+    std::cout << count << "\n";
 }
 
 void drawMatchPtsInCircle(

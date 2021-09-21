@@ -706,6 +706,7 @@ int ORBmatcher::SearchByProjection(KeyFrame* pKF, cv::Mat Scw, const std::vector
 int ORBmatcher::SearchForInitialization(Frame &F1, Frame &F2, vector<cv::Point2f> &vbPrevMatched, vector<int> &vnMatches12, int windowSize)
 {
     int nmatches=0;
+    int best_match = 0;
     vnMatches12 = vector<int>(F1.mvKeysUn.size(),-1);
 
     vector<int> rotHist[HISTO_LENGTH];
@@ -759,6 +760,7 @@ int ORBmatcher::SearchForInitialization(Frame &F1, Frame &F2, vector<cv::Point2f
 
         if(bestDist<=TH_LOW)
         {
+            best_match += 1;
             if(bestDist<(float)bestDist2*mfNNratio)
             {
                 if(vnMatches21[bestIdx2]>=0)
@@ -787,6 +789,7 @@ int ORBmatcher::SearchForInitialization(Frame &F1, Frame &F2, vector<cv::Point2f
 
     }
 
+    std::cout << best_match << " " << nmatches << "\n";
     if(mbCheckOrientation)
     {
         int ind1=-1;
@@ -805,13 +808,13 @@ int ORBmatcher::SearchForInitialization(Frame &F1, Frame &F2, vector<cv::Point2f
                 if(vnMatches12[idx1]>=0)
                 {
                     vnMatches12[idx1]=-1;
+                    best_match--;
                     nmatches--;
                 }
             }
         }
 
     }
-
     //Update prev matched
     for(size_t i1=0, iend1=vnMatches12.size(); i1<iend1; i1++)
         if(vnMatches12[i1]>=0)

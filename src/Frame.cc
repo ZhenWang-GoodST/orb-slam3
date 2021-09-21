@@ -288,6 +288,7 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
      mpCamera2(nullptr)
 {
     this->monoImage = imGray.clone();
+    cv::cvtColor(monoImage, monoImage, cv::COLOR_GRAY2BGR);
     // Frame ID
     mnId=nNextId++;
 

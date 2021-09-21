@@ -2281,7 +2281,8 @@ void Tracking::StereoInitialization()
     }
 }
 
-
+#pragma GCC push_options
+#pragma GCC optimize (0)
 void Tracking::MonocularInitialization()
 {
 
@@ -2331,9 +2332,33 @@ void Tracking::MonocularInitialization()
         // Find correspondences
         ORBmatcher matcher(0.9,true);
         int nmatches = matcher.SearchForInitialization(mInitialFrame,mCurrentFrame,mvbPrevMatched,mvIniMatches,100);
-
+        
+        cv::Mat show_map;
+        // cv::namedWindow("show_map", cv::WINDOW_NORMAL);
+        tergeo::visualodometry::drawMatchPts(mInitialFrame.monoImage, mCurrentFrame.monoImage, show_map, mInitialFrame.mvKeysUn, mCurrentFrame.mvKeysUn,mvIniMatches, cv::Scalar(0, 255, 0), true);
+        // std::cout << show_map.size() << "\n";
+        cv::imshow("show_map", show_map);
+        cv::waitKey(1);
+        std::cout << "nmatches: " << nmatches << "\n"; 
+        std::string output_path = "/home/tonglu/VO-LOAM/log/" + std::to_string(clock()) + "/";
+        std::cout << "output to: " << output_path << "\n";
+        createFolders(output_path.c_str());
+        std::ofstream of(output_path + "initilize.txt");
+        // cv::drawKeypoints(mInitialFrame.monoImage, mInitialFrame.mvKeysUn, mInitialFrame.monoImage, cv::Scalar(0, 255, 0));
+        // cv::drawKeypoints(mCurrentFrame.monoImage, mCurrentFrame.mvKeysUn, mCurrentFrame.monoImage, cv::Scalar(0, 255, 0));
+        tergeo::visualodometry::drawKeyPts(mInitialFrame.monoImage, mInitialFrame.mvKeysUn, 5, cv::Scalar(0, 255, 0));
+        tergeo::visualodometry::drawKeyPts(mCurrentFrame.monoImage, mCurrentFrame.mvKeysUn, 5, cv::Scalar(0, 255, 0));
+        cv::imwrite(output_path + "match.jpg", show_map);
+        cv::imwrite(output_path + "left.jpg", mInitialFrame.monoImage);
+        cv::imwrite(output_path + "right.jpg", mCurrentFrame.monoImage);
+        of << "success initilized at mInitialFrame stamp " << std::setw(20) << std::setprecision(20) << std::to_string(mInitialFrame.mTimeStamp) << " , filename:" << mInitialFrame.mNameFile << "\n";
+        of << "success initilized at mCurrentFrame stamp " << std::setw(20) << std::setprecision(20) << std::to_string(mCurrentFrame.mTimeStamp) << " , filename:" << mCurrentFrame.mNameFile << "\n";
+        of << "matched points: " << nmatches << "\n";
+        of << "left points: " << mInitialFrame.mvKeysUn.size() << "\n";
+        of << "right points: " << mCurrentFrame.mvKeysUn.size() << "\n";
+        of.close();
         // Check if there are enough correspondences
-        if(nmatches<100)
+        if(nmatches<40)
         {
             delete mpInitializer;
             mpInitializer = static_cast<Initializer*>(NULL);
@@ -2364,8 +2389,9 @@ void Tracking::MonocularInitialization()
             cv::imwrite(output_path + "right.jpg", mCurrentFrame.monoImage);
             of << "success initilized at mInitialFrame stamp " << std::setw(20) << std::setprecision(20) << std::to_string(mInitialFrame.mTimeStamp) << " , filename:" << mInitialFrame.mNameFile << "\n";
             of << "success initilized at mCurrentFrame stamp " << std::setw(20) << std::setprecision(20) << std::to_string(mCurrentFrame.mTimeStamp) << " , filename:" << mCurrentFrame.mNameFile << "\n";
+            of << "matched points: " << nmatches << "\n";
             of.close();
-            mpCamera->ReconstructWithTwoViews(mInitialFrame.mvKeysUn,mCurrentFrame.mvKeysUn,mvIniMatches,Rcw,tcw,mvIniP3D,vbTriangulated);
+            // mpCamera->ReconstructWithTwoViews(mInitialFrame.mvKeysUn,mCurrentFrame.mvKeysUn,mvIniMatches,Rcw,tcw,mvIniP3D,vbTriangulated);
             std::cout << "success initilized at stamp " << mInitialFrame.mTimeStamp << " , filename:" << mInitialFrame.mNameFile << "\n";
             for(size_t i=0, iend=mvIniMatches.size(); i<iend;i++)
             {
@@ -2390,7 +2416,7 @@ void Tracking::MonocularInitialization()
         }
     }
 }
-
+#pragma GCC pop_options
 
 
 void Tracking::CreateInitialMapMonocular()

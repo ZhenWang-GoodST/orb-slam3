@@ -1,3 +1,10 @@
 {
-    "yaml": "/home/tonglu/VO-LOAM/github/orb-slam3/conf/myrealsense.yaml"
+    "yaml1": "/home/tonglu/VO-LOAM/github/orb-slam3/Examples/Monocular/EuRoC.yaml",
+    "yaml": "/home/tonglu/VO-LOAM/github/orb-slam3/conf/myrealsense.yaml",
+    "vocabulary" : "/home/tonglu/VO-LOAM/github/orb-slam3/Vocabulary/ORBvoc.bin",
+    "imagepath1":"/media/tonglu/新加卷/data/opensource/MH_01_easy/MH_01_easy",
+    "imagepath": "/media/tonglu/新加卷/data/scoutmini/地下车库/2021-08-30-19-21-42/camera/color/image_raw",
+    "stamppath1": "/home/tonglu/VO-LOAM/github/orb-slam3/Examples/Monocular/EuRoC_TimeStamps/MH01.txt",
+    "stamppath": "/media/tonglu/新加卷/data/scoutmini/地下车库/2021-08-30-19-21-42/camera/color/image_rawinfo.txt",
+    "num_seq": 1
 }
