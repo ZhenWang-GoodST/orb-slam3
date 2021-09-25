@@ -59,7 +59,6 @@ int main(int argc, char **argv)
     std::string voculbary = "/home/tonglu/VO-LOAM/github/orb-slam3/Vocabulary/ORBvoc.bin";
     std::string yaml_conf = "/home/tonglu/VO-LOAM/github/orb-slam3/Examples/Monocular/EuRoC.yaml";
     readParameter("yaml", yaml_conf);
-    std::cout << "yaml : " << yaml_conf << "\n";
     ORB_SLAM3::System SLAM(voculbary,yaml_conf,ORB_SLAM3::System::MONOCULAR,true);
 
     ImageGrabber igb(&SLAM);

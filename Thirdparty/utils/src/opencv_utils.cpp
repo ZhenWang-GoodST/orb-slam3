@@ -44,6 +44,7 @@ void drawMatchPts(
         cv::Rect rect2(cv::Point2f(left.cols, 0), left.size());
         left.copyTo(show_image(rect1));
         right.copyTo(show_image(rect2));
+        cv::cvtColor(show_image, show_image, cv::COLOR_GRAY2BGR);
     }
     // std::cout << show_image.size() << "\n";
     int size = 5;
@@ -68,14 +69,11 @@ void drawMatchPts(
 
 void drawKeyPts(
     cv::Mat &image, const std::vector<cv::KeyPoint> &pts, int size, const  cv::Scalar color) {
-    int count = 0;
     for (int i = 0; i < pts.size(); ++i) {
         cv::rectangle(image, cv::Rect(pts[i].pt.x - size, pts[i].pt.y - size, size * 2, size * 2), color);
         // cv::imshow("key", image);
         // cv::waitKey();
-        count += 1;
     }
-    std::cout << count << "\n";
 }
 
 void drawMatchPtsInCircle(

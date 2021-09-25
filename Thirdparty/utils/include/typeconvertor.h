@@ -17,15 +17,7 @@ Eigen::MatrixXd cv2Eigen(const cv::Mat &cvmat) {
     return eigenmat;
 }
 
-void eigen2CV(const Eigen::MatrixXd &eigenmat, cv::Mat &cvmat) {
-    int row = eigenmat.rows();
-    int col = eigenmat.cols();
-    for (int i = 0; i < row; ++i) {
-        for (int j = 0; j < col; ++j) {
-            cvmat.at<double>(i, j) = eigenmat(i, j);
-        }
-    }
-}
+void eigen2CV(const Eigen::MatrixXd &eigenmat, cv::Mat &cvmat);
 
 
 }

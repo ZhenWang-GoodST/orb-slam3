@@ -29,6 +29,10 @@
 #include <thread>
 #include <include/CameraModels/Pinhole.h>
 #include <include/CameraModels/KannalaBrandt8.h>
+#include "orb_utils.h"
+std::string log_dir = ""; 
+std::string glog_dir = "";
+std::string global_timestamp = "";
 
 namespace ORB_SLAM3
 {
@@ -69,7 +73,7 @@ Frame::Frame(const Frame &frame)
      monoLeft(frame.monoLeft), monoRight(frame.monoRight), mvLeftToRightMatch(frame.mvLeftToRightMatch),
      mvRightToLeftMatch(frame.mvRightToLeftMatch), mvStereo3Dpoints(frame.mvStereo3Dpoints),
      mTlr(frame.mTlr.clone()), mRlr(frame.mRlr.clone()), mtlr(frame.mtlr.clone()), mTrl(frame.mTrl.clone()),
-     mTrlx(frame.mTrlx), mTlrx(frame.mTlrx), mOwx(frame.mOwx), mRcwx(frame.mRcwx), mtcwx(frame.mtcwx), monoImage(frame.monoImage)
+     mTrlx(frame.mTrlx), mTlrx(frame.mTlrx), mOwx(frame.mOwx), mRcwx(frame.mRcwx), mtcwx(frame.mtcwx), monoImage(frame.monoImage), monoShowImage(frame.monoShowImage)
 {
     for(int i=0;i<FRAME_GRID_COLS;i++)
         for(int j=0; j<FRAME_GRID_ROWS; j++){
@@ -288,7 +292,8 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
      mpCamera2(nullptr)
 {
     this->monoImage = imGray.clone();
-    cv::cvtColor(monoImage, monoImage, cv::COLOR_GRAY2BGR);
+    this->monoShowImage = imGray.clone();
+    cv::cvtColor(monoShowImage, monoShowImage, cv::COLOR_GRAY2BGR);
     // Frame ID
     mnId=nNextId++;
 
@@ -318,6 +323,7 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
         return;
 
     UndistortKeyPoints();
+    tergeo::visualodometry::drawKeyPts(monoShowImage, mvKeysUn, 5, cv::Scalar(0, 255, 0));
 
     // Set no stereo information
     mvuRight = vector<float>(N,-1);

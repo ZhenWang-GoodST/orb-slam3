@@ -16,7 +16,6 @@
 * If not, see <http://www.gnu.org/licenses/>.
 */
 
-
 #include "Tracking.h"
 
 #include <opencv2/core/core.hpp>
@@ -39,6 +38,8 @@
 #include <orb_utils.h>
 
 using namespace std;
+
+#include "glog/logging.h"
 
 namespace ORB_SLAM3
 {
@@ -1687,6 +1688,8 @@ void Tracking::Track()
         else if(mCurrentFrame.mTimeStamp>mLastFrame.mTimeStamp+1.0)
         {
             cout << "id last: " << mLastFrame.mnId << "    id curr: " << mCurrentFrame.mnId << endl;
+            std::cout << mCurrentFrame.mTimeStamp << "\n";
+            CreateMapInAtlas();
             if(mpAtlas->isInertial())
             {
 
@@ -1983,8 +1986,12 @@ void Tracking::Track()
                 bOK = TrackLocalMap();
 
             }
-            if(!bOK)
+            if(!bOK) {
                 cout << "Fail to track local map!" << endl;
+                std::ofstream of(log_dir + "/info.txt", std::ios_base::app);
+                of << "Fail to track local map!" << std::to_string(mCurrentFrame.mTimeStamp) << "\n";
+                of.close();
+            }
         }
         else
         {
@@ -2339,24 +2346,14 @@ void Tracking::MonocularInitialization()
         // std::cout << show_map.size() << "\n";
         cv::imshow("show_map", show_map);
         cv::waitKey(1);
-        std::cout << "nmatches: " << nmatches << "\n"; 
-        std::string output_path = "/home/tonglu/VO-LOAM/log/" + std::to_string(clock()) + "/";
-        std::cout << "output to: " << output_path << "\n";
-        createFolders(output_path.c_str());
-        std::ofstream of(output_path + "initilize.txt");
-        // cv::drawKeypoints(mInitialFrame.monoImage, mInitialFrame.mvKeysUn, mInitialFrame.monoImage, cv::Scalar(0, 255, 0));
-        // cv::drawKeypoints(mCurrentFrame.monoImage, mCurrentFrame.mvKeysUn, mCurrentFrame.monoImage, cv::Scalar(0, 255, 0));
-        tergeo::visualodometry::drawKeyPts(mInitialFrame.monoImage, mInitialFrame.mvKeysUn, 5, cv::Scalar(0, 255, 0));
-        tergeo::visualodometry::drawKeyPts(mCurrentFrame.monoImage, mCurrentFrame.mvKeysUn, 5, cv::Scalar(0, 255, 0));
-        cv::imwrite(output_path + "match.jpg", show_map);
-        cv::imwrite(output_path + "left.jpg", mInitialFrame.monoImage);
-        cv::imwrite(output_path + "right.jpg", mCurrentFrame.monoImage);
-        of << "success initilized at mInitialFrame stamp " << std::setw(20) << std::setprecision(20) << std::to_string(mInitialFrame.mTimeStamp) << " , filename:" << mInitialFrame.mNameFile << "\n";
-        of << "success initilized at mCurrentFrame stamp " << std::setw(20) << std::setprecision(20) << std::to_string(mCurrentFrame.mTimeStamp) << " , filename:" << mCurrentFrame.mNameFile << "\n";
-        of << "matched points: " << nmatches << "\n";
-        of << "left points: " << mInitialFrame.mvKeysUn.size() << "\n";
-        of << "right points: " << mCurrentFrame.mvKeysUn.size() << "\n";
-        of.close();
+        cv::imwrite(glog_dir + "/match.jpg", show_map);
+        cv::imwrite(glog_dir + "/left.jpg", mInitialFrame.monoShowImage);
+        cv::imwrite(glog_dir + "/right.jpg", mCurrentFrame.monoShowImage);
+        LOG(INFO) << "matched points: " << nmatches << "\n";
+        LOG(INFO) << "left points: " << mInitialFrame.mvKeysUn.size() << "\n";
+        LOG(INFO) << "right points: " << mCurrentFrame.mvKeysUn.size() << "\n";
+        LOG(INFO) << "left stamp: " << std::to_string(mInitialFrame.mTimeStamp);
+        LOG(INFO) << "right stamp: " <<  std::to_string(mCurrentFrame.mTimeStamp);
         // Check if there are enough correspondences
         if(nmatches<40)
         {
@@ -2370,29 +2367,33 @@ void Tracking::MonocularInitialization()
         cv::Mat tcw; // Current Camera Translation
         vector<bool> vbTriangulated; // Triangulated Correspondences (mvIniMatches)
         bool res = mpCamera->ReconstructWithTwoViews(mInitialFrame.mvKeysUn,mCurrentFrame.mvKeysUn,mvIniMatches,Rcw,tcw,mvIniP3D,vbTriangulated);
+        // of << "failed to initilize\n";
+        // of.close();
 
         if(res)
         {
-            cv::Mat show_map;
-            // cv::namedWindow("show_map", cv::WINDOW_NORMAL);
-            tergeo::visualodometry::drawMatchPts(mInitialFrame.monoImage, mCurrentFrame.monoImage, show_map, mInitialFrame.mvKeysUn, mCurrentFrame.mvKeysUn,mvIniMatches, cv::Scalar(0, 255, 0), true);
-            // std::cout << show_map.size() << "\n";
-            cv::imshow("show_map", show_map);
-            cv::waitKey(1);
-            std::cout << "nmatches: " << nmatches << "\n"; 
-            std::string output_path = "/home/tonglu/VO-LOAM/log/" + std::to_string(clock()) + "/";
-            std::cout << "output to: " << output_path << "\n";
-            createFolders(output_path.c_str());
-            std::ofstream of(output_path + "initilize.txt");
-            cv::imwrite(output_path + "match.jpg", show_map);
-            cv::imwrite(output_path + "left.jpg", mInitialFrame.monoImage);
-            cv::imwrite(output_path + "right.jpg", mCurrentFrame.monoImage);
-            of << "success initilized at mInitialFrame stamp " << std::setw(20) << std::setprecision(20) << std::to_string(mInitialFrame.mTimeStamp) << " , filename:" << mInitialFrame.mNameFile << "\n";
-            of << "success initilized at mCurrentFrame stamp " << std::setw(20) << std::setprecision(20) << std::to_string(mCurrentFrame.mTimeStamp) << " , filename:" << mCurrentFrame.mNameFile << "\n";
-            of << "matched points: " << nmatches << "\n";
-            of.close();
+            // cv::Mat show_map;
+            // // cv::namedWindow("show_map", cv::WINDOW_NORMAL);
+            // tergeo::visualodometry::drawMatchPts(mInitialFrame.monoImage, mCurrentFrame.monoImage, show_map, mInitialFrame.mvKeysUn, mCurrentFrame.mvKeysUn,mvIniMatches, cv::Scalar(0, 255, 0), true);
+            // // std::cout << show_map.size() << "\n";
+            // cv::imshow("show_map", show_map);
+            // cv::waitKey(1);
+            // std::cout << "nmatches: " << nmatches << "\n"; 
+            // std::string output_path = "/home/tonglu/VO-LOAM/log/" + std::to_string(clock()) + "/";
+            // std::cout << "output to: " << output_path << "\n";
+            // createFolders(output_path.c_str());
+            // std::ofstream of(output_path + "initilize.txt");
+            // cv::imwrite(output_path + "match.jpg", show_map);
+            // cv::imwrite(output_path + "left.jpg", mInitialFrame.monoImage);
+            // cv::imwrite(output_path + "right.jpg", mCurrentFrame.monoImage);
+            // of << "success initilized at mInitialFrame stamp " << std::setw(20) << std::setprecision(20) << std::to_string(mInitialFrame.mTimeStamp) << " , filename:" << mInitialFrame.mNameFile << "\n";
+            // of << "success initilized at mCurrentFrame stamp " << std::setw(20) << std::setprecision(20) << std::to_string(mCurrentFrame.mTimeStamp) << " , filename:" << mCurrentFrame.mNameFile << "\n";
+            // of << "matched points: " << nmatches << "\n";
+            // of.close();
             // mpCamera->ReconstructWithTwoViews(mInitialFrame.mvKeysUn,mCurrentFrame.mvKeysUn,mvIniMatches,Rcw,tcw,mvIniP3D,vbTriangulated);
-            std::cout << "success initilized at stamp " << mInitialFrame.mTimeStamp << " , filename:" << mInitialFrame.mNameFile << "\n";
+            std::ofstream of(log_dir + "/info.txt", std::ios_base::app);
+            of << "success initilized at stamp " << std::to_string(mCurrentFrame.mTimeStamp) << "\n";
+            of.close();
             for(size_t i=0, iend=mvIniMatches.size(); i<iend;i++)
             {
                 if(mvIniMatches[i]>=0 && !vbTriangulated[i])
@@ -2412,7 +2413,9 @@ void Tracking::MonocularInitialization()
             CreateInitialMapMonocular();
 
         } else {
-            std::cout << "initilize failed\n";
+            std::ofstream of(log_dir + "/info.txt", std::ios_base::app);
+            of << "initilize failed at " << std::to_string(mCurrentFrame.mTimeStamp) << "\n";
+            of.close();
         }
     }
 }

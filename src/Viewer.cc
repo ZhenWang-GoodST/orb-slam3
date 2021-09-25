@@ -180,7 +180,11 @@ void Viewer::Run()
     {
         menuShowGraph = true;
     }
-
+    // std::string record_path = "ffmpeg:[fps=30,bps=8388608]//" + log_dir + "pangolin.avi";
+    // pangolin::VideoOutput recorder(record_path);
+    int count = 0;
+    cv::Size size(0, 0);
+    cv::VideoWriter vwriter;
     while(1)
     {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -258,6 +262,11 @@ void Viewer::Run()
             mpMapDrawer->DrawMapPoints();
 
         pangolin::FinishFrame();
+        // pangolin::SaveFramebuffer(recorder,d_cam.GetBounds());
+        // std::cout << log_dir + "pangolin/" + std::to_string(count) << "\n";
+        // pangolin::SaveFramebuffer(log_dir + "pangolin/" + std::to_string(count), d_cam.GetBounds());
+        pangolin::SaveWindowOnRender(log_dir + "pangolin/" + std::to_string(count));
+        // pangolin::DisplayBase().RecordOnRender("ffmpeg:[fps=50,bps=8388608]//screencap.avi");
 
         cv::Mat toShow;
         cv::Mat im = mpFrameDrawer->DrawFrame(true);
@@ -272,7 +281,16 @@ void Viewer::Run()
 
         cv::imshow("ORB-SLAM3: Current Frame",toShow);
         cv::waitKey(mT);
-
+        // if (count == 0) {
+        // if (size.width != toShow.size().width || size.height != toShow.size().height) {
+            // size = toShow.size();
+        cv::imwrite(log_dir + "tracking/" + global_timestamp + ".png", toShow);
+            // vwriter = cv::VideoWriter(log_dir + "tracking.mp4", 0x7634706d, 15.0, toShow.size());
+        // } else {
+            // vwriter << toShow;
+        // }
+        count += 1;
+        // std::cout << im.size() << "\n";
         if(menuReset)
         {
             menuShowGraph = true;

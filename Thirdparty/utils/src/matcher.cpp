@@ -21,7 +21,7 @@
 #include "coverage_math.hpp"
 #include "coverage_utils.h"
 #include "computervision.h"
-#include "typeconvertor.hpp"
+#include "typeconvertor.h"
 #include "opencv_utils.h"
 #include "photogrammetry.h"
 #include "vo_type_utils.h"

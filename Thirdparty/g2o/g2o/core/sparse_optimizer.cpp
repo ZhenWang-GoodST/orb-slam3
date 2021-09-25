@@ -373,9 +373,11 @@ namespace g2o{
       _batchStatistics.resize(iterations);
     
     OptimizationAlgorithm::SolverResult result = OptimizationAlgorithm::OK;
+    // std::cout << "bug 1\n";
     for (int i=0; i<iterations && ! terminate() && ok; i++){
       preIteration(i);
 
+      // std::cout << "bug 2： " << i << "\n";
       if (_computeBatchStatistics) {
         G2OBatchStatistics& cstat = _batchStatistics[i];
         G2OBatchStatistics::setGlobalStats(&cstat);

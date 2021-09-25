@@ -33,6 +33,8 @@
 #include <boost/archive/xml_iarchive.hpp>
 #include <boost/archive/xml_oarchive.hpp>
 
+#include "orb_utils.h"
+
 namespace ORB_SLAM3
 {
 
@@ -513,6 +515,7 @@ void System::SaveTrajectoryEuRoC(const string &filename)
     vector<Map*> vpMaps = mpAtlas->GetAllMaps();
     Map* pBiggerMap;
     int numMaxKFs = 0;
+    //add save map to pcd
     for(Map* pMap :vpMaps)
     {
         if(pMap->GetAllKeyFrames().size() > numMaxKFs)
@@ -606,6 +609,9 @@ void System::SaveKeyFrameTrajectoryEuRoC(const string &filename)
     vector<Map*> vpMaps = mpAtlas->GetAllMaps();
     Map* pBiggerMap;
     int numMaxKFs = 0;
+    int count = 0;
+    std::string mappath = log_dir + "map/";
+    pcl::PointCloud<pcl::PointXYZ>::Ptr pcl_cloud(new pcl::PointCloud<pcl::PointXYZ>);
     for(Map* pMap :vpMaps)
     {
         if(pMap->GetAllKeyFrames().size() > numMaxKFs)
@@ -613,6 +619,19 @@ void System::SaveKeyFrameTrajectoryEuRoC(const string &filename)
             numMaxKFs = pMap->GetAllKeyFrames().size();
             pBiggerMap = pMap;
         }
+        if(!pMap) std::cout << "nullptr\n";
+        pcl_cloud->clear();
+        std::vector<MapPoint*> mapPoints = pMap->GetAllMapPoints();
+        for (int i = 0; i < mapPoints.size(); ++i) {
+            cv::Mat pose = mapPoints[i]->GetWorldPos();
+            pcl_cloud->points.push_back(pcl::PointXYZ(pose.at<float>(0, 0), pose.at<float>(1, 0), pose.at<float>(2, 0)));
+        }
+        if(pcl_cloud->points.size() < 1) continue;
+        pcl_cloud->height = 1;
+        pcl_cloud->width = pcl_cloud->points.size();
+        pcl_cloud->is_dense = false;
+        pcl::io::savePCDFile(mappath + std::to_string(count) + ".pcd", *pcl_cloud);
+        pcl_cloud->points.clear();
     }
 
     vector<KeyFrame*> vpKFs = pBiggerMap->GetAllKeyFrames();

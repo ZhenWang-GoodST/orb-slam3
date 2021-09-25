@@ -788,8 +788,8 @@ int ORBmatcher::SearchForInitialization(Frame &F1, Frame &F2, vector<cv::Point2f
         }
 
     }
-
-    std::cout << best_match << " " << nmatches << "\n";
+    LOG(INFO) << "pass threshold: " << best_match; 
+    LOG(INFO) << "pass nratiotest: " << nmatches; 
     if(mbCheckOrientation)
     {
         int ind1=-1;
@@ -820,6 +820,7 @@ int ORBmatcher::SearchForInitialization(Frame &F1, Frame &F2, vector<cv::Point2f
         if(vnMatches12[i1]>=0)
             vbPrevMatched[i1]=F2.mvKeysUn[vnMatches12[i1]].pt;
 
+    LOG(INFO) << "pass Orientation: " << nmatches; 
     return nmatches;
 }
 

@@ -59,6 +59,8 @@
 #include <iostream>
 
 #include "ORBextractor.h"
+extern std::string log_dir; 
+#include <glog/logging.h>
 
 
 using namespace cv;
@@ -1064,7 +1066,8 @@ namespace ORB_SLAM3
         for (size_t i = 0; i < keypoints.size(); i++)
             computeOrbDescriptor(keypoints[i], image, &pattern[0], descriptors.ptr((int)i));
     }
-
+#pragma GCC push_options
+#pragma GCC optimize (0)
     int ORBextractor::operator()( InputArray _image, InputArray _mask, vector<KeyPoint>& _keypoints,
                                   OutputArray _descriptors, std::vector<int> &vLappingArea)
     {
@@ -1081,6 +1084,7 @@ namespace ORB_SLAM3
         vector < vector<KeyPoint> > allKeypoints;
         ComputeKeyPointsOctTree(allKeypoints);
         //ComputeKeyPointsOld(allKeypoints);
+        LOG(INFO) << "octave 0 has " << mnFeaturesPerLevel[0] << "\n";
 
         Mat descriptors;
 
@@ -1148,7 +1152,7 @@ namespace ORB_SLAM3
         //cout << "[ORBextractor]: extracted " << _keypoints.size() << " KeyPoints" << endl;
         return monoIndex;
     }
-
+#pragma GCC pop_options
     void ORBextractor::ComputePyramid(cv::Mat image)
     {
         for (int level = 0; level < nlevels; ++level)

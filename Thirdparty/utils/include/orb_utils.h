@@ -11,7 +11,7 @@
 #include "photogrammetry.h"
 #include "sfm.h"
 #include "stl_utils.h"
-#include "typeconvertor.hpp"
+#include "typeconvertor.h"
 #include "types.hpp"
 #include "vo_type_utils.h"
 

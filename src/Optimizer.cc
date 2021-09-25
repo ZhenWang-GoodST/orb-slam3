@@ -278,7 +278,9 @@ void Optimizer::BundleAdjustment(const vector<KeyFrame *> &vpKFs, const vector<M
     // Optimize!
     optimizer.setVerbose(false);
     optimizer.initializeOptimization();
+    std::cout << "begin optomize\n";
     optimizer.optimize(nIterations);
+    std::cout << "optomize done\n";
     Verbose::PrintMess("BA: End of the optimization", Verbose::VERBOSITY_NORMAL);
 
     // Recover optimized data

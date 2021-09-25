@@ -31,6 +31,10 @@
 
 #include <mutex>
 #include <opencv2/opencv.hpp>
+#include <glog/logging.h>
+extern std::string log_dir;
+extern std::string glog_dir;
+extern std::string global_timestamp;
 
 namespace ORB_SLAM3
 {
@@ -307,7 +311,7 @@ public:
 
     cv::Mat UnprojectStereoFishEye(const int &i);
 
-    cv::Mat monoImage;
+    cv::Mat monoImage, monoShowImage;
 
     cv::Mat imgLeft, imgRight;
 

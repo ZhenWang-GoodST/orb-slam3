@@ -1,0 +1,8 @@
+{
+    "yaml": "/home/tonglu/VO-LOAM/github/orb-slam3/conf/myrealsense.yaml",
+    "vocabulary" : "/home/tonglu/VO-LOAM/github/orb-slam3/Vocabulary/ORBvoc.bin",
+    "imagepath": "/media/tonglu/新加卷/data/scoutmini/地下车库/2021-08-30-19-21-42/camera/color/image_raw",
+    "stamppath": "/media/tonglu/新加卷/data/scoutmini/地下车库/2021-08-30-19-21-42/camera/color/image_rawinfo.txt",
+    "num_seq": 1,
+    "start_stamp": "1630322557.148747"
+}

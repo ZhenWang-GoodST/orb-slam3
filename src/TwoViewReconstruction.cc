@@ -21,6 +21,7 @@
 #include "Thirdparty/DBoW2/DUtils/Random.h"
 
 #include<thread>
+#include <glog/logging.h>
 
 
 using namespace std;
@@ -116,12 +117,12 @@ bool TwoViewReconstruction::Reconstruct(const std::vector<cv::KeyPoint>& vKeys1,
     // Try to reconstruct from homography or fundamental depending on the ratio (0.40-0.45)
     if(RH>0.50) // if(RH>0.40)
     {
-        //cout << "Initialization from Homography" << endl;
+        LOG(INFO) << "Initialization from Homography";
         return ReconstructH(vbMatchesInliersH,H, mK,R21,t21,vP3D,vbTriangulated,minParallax,50);
     }
     else //if(pF_HF>0.6)
     {
-        //cout << "Initialization from Fundamental" << endl;
+        LOG(INFO) << "Initialization from Fundamental";
         return ReconstructF(vbMatchesInliersF,F,mK,R21,t21,vP3D,vbTriangulated,minParallax,25);
     }
 }
@@ -520,7 +521,9 @@ bool TwoViewReconstruction::ReconstructF(vector<bool> &vbMatchesInliers, cv::Mat
         nsimilar++;
 
     // If there is not a clear winner or not enough triangulated points reject initialization
-    std::cout << maxGood << " " << nsimilar << "\n";
+    LOG(INFO) << "maxgood: " << maxGood;
+    LOG(INFO) << "nsimilar: " << nsimilar;
+    // std::cout << maxGood << " " << nsimilar << "\n";
     if(maxGood<nMinGood || nsimilar>1)
     {
         return false;
@@ -529,6 +532,7 @@ bool TwoViewReconstruction::ReconstructF(vector<bool> &vbMatchesInliers, cv::Mat
     // If best reconstruction has enough parallax initialize
     if(maxGood==nGood1)
     {
+        LOG(INFO) << "parallax1: " << parallax1;
         if(parallax1>minParallax)
         {
             vP3D = vP3D1;
@@ -540,6 +544,7 @@ bool TwoViewReconstruction::ReconstructF(vector<bool> &vbMatchesInliers, cv::Mat
         }
     }else if(maxGood==nGood2)
     {
+        LOG(INFO) << "parallax2: " << parallax2;
         if(parallax2>minParallax)
         {
             vP3D = vP3D2;
@@ -551,6 +556,7 @@ bool TwoViewReconstruction::ReconstructF(vector<bool> &vbMatchesInliers, cv::Mat
         }
     }else if(maxGood==nGood3)
     {
+        LOG(INFO) << "parallax3: " << parallax3;
         if(parallax3>minParallax)
         {
             vP3D = vP3D3;
@@ -562,6 +568,7 @@ bool TwoViewReconstruction::ReconstructF(vector<bool> &vbMatchesInliers, cv::Mat
         }
     }else if(maxGood==nGood4)
     {
+        LOG(INFO) << "parallax4: " << parallax4;
         if(parallax4>minParallax)
         {
             vP3D = vP3D4;
@@ -801,7 +808,8 @@ void TwoViewReconstruction::Normalize(const vector<cv::KeyPoint> &vKeys, vector<
     T.at<float>(1,2) = -meanY*sY;
 }
 
-
+#pragma GCC push_options
+#pragma GCC optimize(0)
 int TwoViewReconstruction::CheckRT(const cv::Mat &R, const cv::Mat &t, const vector<cv::KeyPoint> &vKeys1, const vector<cv::KeyPoint> &vKeys2,
                        const vector<Match> &vMatches12, vector<bool> &vbMatchesInliers,
                        const cv::Mat &K, vector<cv::Point3f> &vP3D, float th2, vector<bool> &vbGood, float &parallax)
@@ -913,6 +921,7 @@ int TwoViewReconstruction::CheckRT(const cv::Mat &R, const cv::Mat &t, const vec
     return nGood;
 }
 
+#pragma GCC pop_options
 void TwoViewReconstruction::DecomposeE(const cv::Mat &E, cv::Mat &R1, cv::Mat &R2, cv::Mat &t)
 {
     cv::Mat u,w,vt;

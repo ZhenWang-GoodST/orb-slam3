@@ -4,7 +4,8 @@ add_definitions(-w)
 
 IF(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE Release)
-ENDIF()
+  ENDIF()
+# add_definitions(-DDEBUG_ORB)
 
 MESSAGE("Build type: " ${CMAKE_BUILD_TYPE})
 
@@ -48,6 +49,7 @@ MESSAGE(${OpenCV_VERSION})
 find_package(Eigen3 3.1.0 REQUIRED)
 find_package(Pangolin REQUIRED)
 find_package(realsense2)
+find_package(glog 0.6.0 REQUIRED)
 
 include_directories(
 ${PROJECT_SOURCE_DIR}
@@ -56,9 +58,10 @@ ${PROJECT_SOURCE_DIR}/include/CameraModels
 ${EIGEN3_INCLUDE_DIR}
 ${Pangolin_INCLUDE_DIRS}
 ${PROJECT_SOURCE_DIR}/Thirdparty/utils/include
+${GLOG_INCLUDE_DIRS}
 )
 
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
+# set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 find_package(catkin REQUIRED COMPONENTS
   roscpp pcl_ros sensor_msgs
 )

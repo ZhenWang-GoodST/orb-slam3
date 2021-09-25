@@ -297,6 +297,7 @@ cv::Mat FrameDrawer::DrawRightFrame()
 void FrameDrawer::DrawTextInfo(cv::Mat &im, int nState, cv::Mat &imText)
 {
     stringstream s;
+    s << global_timestamp;
     if(nState==Tracking::NO_IMAGES_YET)
         s << " WAITING FOR IMAGES";
     else if(nState==Tracking::NOT_INITIALIZED)
@@ -304,13 +305,13 @@ void FrameDrawer::DrawTextInfo(cv::Mat &im, int nState, cv::Mat &imText)
     else if(nState==Tracking::OK)
     {
         if(!mbOnlyTracking)
-            s << "SLAM MODE |  ";
+            s << "SLAM MODE ";
         else
-            s << "LOCALIZATION | ";
+            s << "LOCALIZATION ";
         int nMaps = mpAtlas->CountMaps();
         int nKFs = mpAtlas->KeyFramesInMap();
         int nMPs = mpAtlas->MapPointsInMap();
-        s << "Maps: " << nMaps << ", KFs: " << nKFs << ", MPs: " << nMPs << ", Matches: " << mnTracked;
+        s << "Maps: " << nMaps << " KFs: " << nKFs << " MPs: " << nMPs << " Matches: " << mnTracked;
         if(mnTrackedVO>0)
             s << ", + VO matches: " << mnTrackedVO;
     }
