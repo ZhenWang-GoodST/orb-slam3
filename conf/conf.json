@@ -1,7 +1,8 @@
 {
     "type": 1,
-    "root_path":"/media/tonglu/新加卷/data/scoutmini/测绘学院一-三楼/2021-08-30-22-09-11",
-    "start_stamp": "1630332555.906931",
+    "root_path":"/home/wz/VO-LOAM/data/1004/2021-10-04-08-52-10",
+    "start_stamp": "1633308757.791065",
+    "yaml": "/home/wz/VO-LOAM/data/1004/2021-10-04-08-52-10/nondistor.yaml",
     "imagepath":"/media/tonglu/新加卷/data/opensource/MH_01_easy/MH_01_easy",
     "stamppath": "/home/tonglu/VO-LOAM/github/orb-slam3/Examples/Monocular/EuRoC_TimeStamps/MH01.txt",
     "vocabulary" : "/home/tonglu/VO-LOAM/github/orb-slam3/Vocabulary/ORBvoc.bin",

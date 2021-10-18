@@ -632,6 +632,7 @@ void System::SaveKeyFrameTrajectoryEuRoC(const string &filename)
         pcl_cloud->is_dense = false;
         pcl::io::savePCDFile(mappath + std::to_string(count) + ".pcd", *pcl_cloud);
         pcl_cloud->points.clear();
+        count += 1;
     }
 
     vector<KeyFrame*> vpKFs = pBiggerMap->GetAllKeyFrames();

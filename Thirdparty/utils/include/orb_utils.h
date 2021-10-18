@@ -15,4 +15,7 @@
 #include "types.hpp"
 #include "vo_type_utils.h"
 
+typedef tergeo::visualodometry::Matcher TMatcher;
+typedef tergeo::visualodometry::Match TMatch;
+
 #endif

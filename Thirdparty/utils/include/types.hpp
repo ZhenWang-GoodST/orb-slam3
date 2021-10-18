@@ -36,9 +36,9 @@ static cv::Scalar green = cv::Scalar(0, 255, 0);
 static cv::Scalar blue = cv::Scalar(255, 0, 0);
 
 struct Match {
-    double _coff;
+    double _coff = 0;
     // counter-clock-wise at degrees
-    double _angle;
+    double _angle = 0;
     cv::Point2f _position;
     cv::Mat _coff_mat;
     // cv::getRotationMatrix2D counter_clock_wise degrees

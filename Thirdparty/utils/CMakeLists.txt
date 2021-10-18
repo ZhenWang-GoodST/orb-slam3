@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(image_node)
+add_definitions(-w)
 # include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
 
 # add_definitions(-w)
@@ -26,7 +27,9 @@ project(image_node)
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++14)
 
-set(OpenCV_DIR "/home/tonglu/github/install/opencv3.2.0/share/OpenCV")
+# set(OpenCV_DIR "/home/tonglu/github/install/opencv3.2.0/share/OpenCV")
+set(OpenCV_DIR "/home/wz/github/install/opencv4.2.0/lib/cmake/opencv4")
+set(Ceres_DIR "/home/wz/github/install/ceres/lib/cmake/Ceres")
 # set(Ceres_DIR "/home/wz/github/install/ceres_docker/lib/cmake/Ceres")
 find_package(OpenCV  REQUIRED)
 find_package(Eigen3   REQUIRED)  

@@ -54,10 +54,12 @@ int main(int argc, char **argv)
         type = atoi(argv[1]);
         root_path = argv[2];
         start_stamp = argv[3];
+        yaml = argv[4];
     } else {
         readParameter<int>("type", type);
         readParameter<std::string>("root_path", root_path);
         readParameter<std::string>("start_stamp", start_stamp);
+        readParameter<std::string>("yaml", yaml);
     }
     // readParameter<int>("num_seq", num_seq);
     num_seq = 1;
@@ -84,15 +86,15 @@ int main(int argc, char **argv)
     std::string imagepath = "";
     std::string stamppath = "";
     if (type == 0) {//realsense 
-        yaml = "/home/tonglu/VO-LOAM/github/orb-slam3/conf/myrealsense.yaml";
+        // yaml = "/home/wz/VO-LOAM/github/orb-slam3/conf/myrealsense.yaml";
         imagepath = root_path + "/camera/color/image_raw";
         stamppath = root_path + "/camera/color/image_rawinfo.txt";
     } else if(type == 1) {//usb相机
-        yaml = "/home/tonglu/VO-LOAM/github/orb-slam3/conf/nondistor.yaml";
+        // yaml = "/home/wz/VO-LOAM/github/orb-slam3/conf/nondistor.yaml";
         imagepath = root_path + "/camera/color/image_raw1";
         stamppath = root_path + "/camera/color/image_raw1info.txt";
     } else if(type == 2) {//Euroc
-        yaml = "/home/tonglu/VO-LOAM/github/orb-slam3/Examples/Monocular/EuRoC.yaml";
+        // yaml = "/home/tonglu/VO-LOAM/github/orb-slam3/Examples/Monocular/EuRoC.yaml";
         readParameter<std::string>("imagepath", imagepath);
         readParameter<std::string>("stamppath", stamppath);
     }
@@ -128,7 +130,7 @@ int main(int argc, char **argv)
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     // readParameter<std::string>("vocabulary", vocabulary);
-    vocabulary = "/home/tonglu/VO-LOAM/github/orb-slam3/Vocabulary/ORBvoc.bin";
+    vocabulary = "/home/wz/VO-LOAM/github/orb-slam3/Vocabulary/ORBvoc.bin";
     ORB_SLAM3::System SLAM(vocabulary,yaml,ORB_SLAM3::System::MONOCULAR, true);
 
     log_dir = root_path + "/log/camera" + std::to_string(type) + "/";

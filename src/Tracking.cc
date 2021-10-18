@@ -1349,7 +1349,17 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp,
         else
             cvtColor(mImGray,mImGray,cv::COLOR_BGRA2GRAY);
     }
-
+    // cv::Mat stretchIm;
+    // stretchIm = tergeo::visualodometry::stretch(mImGray, 50, 230);
+    // mImGray = stretchIm;
+    // cv::equalizeHist(mImGray, mImGray);
+    // cv::Size ksize(5, 5);
+    // double simX = 2;
+    // cv::Mat tmp = mImGray.clone();
+    // cv::GaussianBlur(mImGray, mImGray, ksize, simX);
+    // cv::Mat diff;
+    // cv::subtract(mImGray, tmp, diff);
+    // cv::imshow("diff", diff);
     if (mSensor == System::MONOCULAR)
     {
         if(mState==NOT_INITIALIZED || mState==NO_IMAGES_YET ||(lastID - initID) < mMaxFrames)
@@ -2132,6 +2142,9 @@ void Tracking::Track()
         // Reset if the camera get lost soon after initialization
         if(mState==LOST)
         {
+            std::ofstream of(log_dir + "/info.txt", std::ios_base::app);
+            of << "camera get lost soon after initialization!" << std::to_string(mCurrentFrame.mTimeStamp) << "\n";
+            of.close();
             if(pCurrentMap->KeyFramesInMap()<=5)
             {
                 mpSystem->ResetActiveMap();
@@ -2338,8 +2351,18 @@ void Tracking::MonocularInitialization()
 
         // Find correspondences
         ORBmatcher matcher(0.9,true);
+        // TMatcher tmatcher;
+        cv::Mat matched_image;
+        cv::Mat lastIm, currIm;
+        cv::Size size(mInitialFrame.monoImage.cols / 4, mCurrentFrame.monoImage.rows / 4);
+        cv::resize(mInitialFrame.monoImage, lastIm, size, 0.0, 0.0, cv::InterpolationFlags::INTER_LINEAR);
+        cv::resize(mCurrentFrame.monoImage, currIm, size, 0.0, 0.0, cv::InterpolationFlags::INTER_LINEAR);
+        cv::Mat inner_patch = tergeo::visualodometry::getInnerPatch(currIm, lastIm);
+        TMatch tmatch = tergeo::visualodometry::baseTemplate(currIm, inner_patch, matched_image);
+        cv::imwrite(glog_dir + "/template_match.jpg", matched_image);
+
         int nmatches = matcher.SearchForInitialization(mInitialFrame,mCurrentFrame,mvbPrevMatched,mvIniMatches,100);
-        
+        LOG(INFO) << "\n" << tmatch ;
         cv::Mat show_map;
         // cv::namedWindow("show_map", cv::WINDOW_NORMAL);
         tergeo::visualodometry::drawMatchPts(mInitialFrame.monoImage, mCurrentFrame.monoImage, show_map, mInitialFrame.mvKeysUn, mCurrentFrame.mvKeysUn,mvIniMatches, cv::Scalar(0, 255, 0), true);
@@ -2401,6 +2424,12 @@ void Tracking::MonocularInitialization()
                     mvIniMatches[i]=-1;
                     nmatches--;
                 }
+            }
+            for (int i = 0; i < mInitialFrame.mvKeysUn.size(); ++i) {
+                if (mvIniMatches[i] < 0) continue;
+                LOG(INFO) << "";
+                LOG(INFO) << "x: " << mInitialFrame.mvKeys[i].pt.x - mCurrentFrame.mvKeys[mvIniMatches[i]].pt.x;
+                LOG(INFO) << "y: " << mInitialFrame.mvKeys[i].pt.y - mCurrentFrame.mvKeys[mvIniMatches[i]].pt.y;
             }
 
             // Set Frame Poses

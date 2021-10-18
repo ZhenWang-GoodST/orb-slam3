@@ -33,6 +33,17 @@ void printCVPoint(std::vector<T> pts1, std::vector<T> pts2) {
 
 void drawCube(cv::Mat &image, const std::vector<cv::Point2f> cube, cv::Scalar color = cv::Scalar(0, 255, 0));
 
+
+cv::Mat stretch(const cv::Mat& image,int minvalue = 0, int maxvalue = 255);
+
+void singleMatch(const cv::Mat &image, 
+    const cv::Mat &templ, cv::Mat &TMatched_image, Match match);
+
+cv::Mat getInnerPatch(const cv::Mat &image, const cv::Mat &templ);
+
+Match baseTemplate(const cv::Mat &image, 
+        const cv::Mat &templ, cv::Mat &TMatched_image, double initial_angle = 0);
+
 }
 }
 namespace cv_wz {

@@ -526,6 +526,11 @@ bool TwoViewReconstruction::ReconstructF(vector<bool> &vbMatchesInliers, cv::Mat
     // std::cout << maxGood << " " << nsimilar << "\n";
     if(maxGood<nMinGood || nsimilar>1)
     {
+        LOG(INFO) << "nGood1: " << nGood1;
+        LOG(INFO) << "nGood2: " << nGood2;
+        LOG(INFO) << "nGood3: " << nGood3;
+        LOG(INFO) << "nGood4: " << nGood4;
+        LOG(INFO) << "nMinGood: " << nMinGood;
         return false;
     }
 

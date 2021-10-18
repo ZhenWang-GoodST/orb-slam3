@@ -68,12 +68,12 @@ public:
     //
     cv::Mat RT;//H or E
     
-    std::vector<cv::Mat> _descriptor_for_all;
-    std::vector<std::vector<cv::Vec3b>> _colors_for_all;
-    std::vector<std::vector<cv::KeyPoint>> _key_points_for_all;
+    std::vector<cv::Mat> _descriptor_for_all = {};
+    std::vector<std::vector<cv::Vec3b>> _colors_for_all = {};
+    std::vector<std::vector<cv::KeyPoint>> _key_points_for_all = {};
     cv::Mat _descriptors, _last_descriptors;
-    std::vector<cv::KeyPoint> _key_points;
-    std::vector<cv::Vec3b> _colors;
+    std::vector<cv::KeyPoint> _key_points = {};
+    std::vector<cv::Vec3b> _colors = {};
     // record the translate from left to right at pixel-coordinate
     // and the origin is in the center of the image
     // 影像坐标系，右手系， 前方为x，左方为y
@@ -204,7 +204,7 @@ public:
     ros::Publisher structure_publisher;
     sensor_msgs::PointCloud2 structure_pointcloud;
     sensor_msgs::PointCloud2 ros_cloud;
-    pcl::PointCloud<pcl::PointXYZ>::Ptr pcl_cloud; 
+    pcl::PointCloud<pcl::PointXYZ>::Ptr pcl_cloud{new pcl::PointCloud<pcl::PointXYZ>}; 
     cv::Vec3b blue = cv::Vec3b(255, 0, 0);
     cv::Vec3b red = cv::Vec3b(0, 0, 255);
     cv::Vec3b green = cv::Vec3b(0, 255, 0);

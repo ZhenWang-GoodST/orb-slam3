@@ -1,0 +1,11 @@
+glog:no rule to xxx,
+卸载原生glog，源码编译glog，安装到系统，编译ceres，链接到源码编译glog
+
+库文件缺失：
+安装了但是目录不对，问题应该出在cmake，但是暂时不清楚如何设置cmake，于是将usr/lib/x86-linux下库文件通过软链接复制到/usr/local/lib下，注意要使用绝对路径链接，否则只是一个图标
+sudo ln -s /usr/lib/x86_64-linux-gnu/libmetis.so* /usr/local/lib/
+
+minimal ubuntu20.04需要安装以下几个库：
+sudo apt-get install metis
+sudo apt-get install libatlas-base-dev
+sudo apt-get install libsuitesparse-dev

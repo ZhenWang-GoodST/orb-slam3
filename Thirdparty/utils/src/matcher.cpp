@@ -151,8 +151,8 @@ void Matcher::singleMatch(const cv::Mat &image,
     dst_size.width = 
         std::sqrt(image.cols * image.cols + image.rows * image.rows);
     dst_size.height = dst_size.width;
-    cv::Mat tmp_dst1 = cv::Mat::zeros(dst_size, CV_8UC3);
-    cv::Mat tmp_dst2 = cv::Mat::zeros(dst_size, CV_8UC3);
+    cv::Mat tmp_dst1 = cv::Mat::zeros(dst_size, image.type());
+    cv::Mat tmp_dst2 = cv::Mat::zeros(dst_size, image.type());
     cv::Point ori1, ori2;
     ori1.x = dst_size.width / 2 - image.cols / 2;
     ori1.y = dst_size.height / 2 - image.rows / 2;
@@ -224,7 +224,7 @@ Match Matcher::baseTemplate(const cv::Mat &image,
         std::sqrt(image.cols * image.cols + image.rows * image.rows);
     dst_size.height = dst_size.width;
     cv::Mat tmp_tran_templ;
-    cv::Mat translate_templ = cv::Mat::zeros(dst_size, CV_8UC3);
+    cv::Mat translate_templ = cv::Mat::zeros(dst_size, image.type());
     cv::Point ori1, ori2;
     ori1.x = dst_size.width / 2 - image.cols / 2;
     ori1.y = dst_size.height / 2 - image.rows / 2;
@@ -242,7 +242,7 @@ Match Matcher::baseTemplate(const cv::Mat &image,
     for (double i = -5; i < 5; i=i + 1) {
         cv::Mat match_image, rotate_template, image_plus, mask;
         double template_angle = - initial_angle + i;
-        cv::Mat tmp_match_image = cv::Mat::zeros(dst_size, CV_8UC3);
+        cv::Mat tmp_match_image = cv::Mat::zeros(dst_size, image.type());
         image.copyTo(tmp_match_image(rect1));
         
         cv::Point2d center;
