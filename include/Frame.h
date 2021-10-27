@@ -40,6 +40,8 @@ extern std::string global_timestamp;
 extern int winsize;
 extern int debugmode;
 extern int quant;
+extern std::map<std::string, std::string> paraMap;
+extern nlohmann::json cfg;
 
 namespace ORB_SLAM3
 {

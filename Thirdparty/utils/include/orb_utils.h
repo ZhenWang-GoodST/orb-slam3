@@ -2,6 +2,7 @@
 #define ORB_UTILS_H
 
 #include "common.h"
+#include "common.hpp"
 #include "base_coverage_planner.h"
 #include "computervision.h"
 #include "coverage_math.hpp"

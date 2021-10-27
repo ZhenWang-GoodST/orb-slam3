@@ -44,6 +44,11 @@ int main(int argc, char **argv)
     // }
 
     // const int num_seq = (argc-3)/2;
+    std::string USER = get_user();
+    std::string conf_file = "/home/" + USER + "VO-LOAM/github/orb-slam3/conf/conf.json";
+    std::ifstream in(conf_file);
+    in >> cfg;
+    in.close();
     cv::CommandLineParser parser(argc, argv,
         "{ help h usage ? |      | show this message }"
         "{ winsize w      |      | (required) path to reference image }"
@@ -62,15 +67,15 @@ int main(int argc, char **argv)
         start_stamp = argv[3];
         yaml = argv[4];
     } else {
-        readParameter<int>("type", type);
-        readParameter<std::string>("root_path", root_path);
-        readParameter<std::string>("start_stamp", start_stamp);
-        readParameter<std::string>("yaml", yaml);
+        readParameter<int>("type", type, conf_file);
+        readParameter<std::string>("root_path", root_path, conf_file);
+        readParameter<std::string>("start_stamp", start_stamp, conf_file);
+        readParameter<std::string>("yaml", yaml, conf_file);
     }
     //intrinsic read
-    readParameter<int>("winsize", winsize);
-    readParameter<int>("debugmode", debugmode);
-    readParameter<int>("quant", quant);
+    readParameter<int>("winsize", winsize, conf_file);
+    readParameter<int>("debugmode", debugmode, conf_file);
+    readParameter<int>("quant", quant, conf_file);
     if (parser.has("help")){
         parser.printMessage();
         return 0;
@@ -130,8 +135,8 @@ int main(int argc, char **argv)
         stamppath = root_path + "/camera/color/image_raw1info.txt";
     } else if(type == 2) {//Euroc
         // yaml = "/home/tonglu/VO-LOAM/github/orb-slam3/Examples/Monocular/EuRoC.yaml";
-        readParameter<std::string>("imagepath", imagepath);
-        readParameter<std::string>("stamppath", stamppath);
+        readParameter<std::string>("imagepath", imagepath, conf_file);
+        readParameter<std::string>("stamppath", stamppath, conf_file);
     }
     for (seq = 0; seq<num_seq; seq++)
     {
@@ -165,7 +170,7 @@ int main(int argc, char **argv)
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     // readParameter<std::string>("vocabulary", vocabulary);
-    vocabulary = "/home/wz/VO-LOAM/github/orb-slam3/Vocabulary/ORBvoc.bin";
+    vocabulary = "/home/" + USER + "VO-LOAM/github/orb-slam3/Vocabulary/ORBvoc.bin";
     ORB_SLAM3::System SLAM(vocabulary,yaml,ORB_SLAM3::System::MONOCULAR, true);
 
     log_dir = root_path + "/log/camera" + std::to_string(type) + image_pro_map[debugmode] + std::to_string(winsize) + "/";

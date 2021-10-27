@@ -36,6 +36,8 @@ std::string global_timestamp = "";
 int winsize = 100;
 int debugmode = 0;
 int quant = 1;
+std::map<std::string, std::string> paraMap;
+nlohmann::json cfg;
 
 namespace ORB_SLAM3
 {
