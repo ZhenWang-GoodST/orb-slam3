@@ -73,6 +73,7 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(Ceres)
 include_directories(
   ${PROJECT_SOURCE_DIR}/Thirdparty/utils/include
+  ${PROJECT_SOURCE_DIR}/Thirdparty/utils/include/opencv_contribe
   ${catkin_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS} 
   ${EIGEN3_INCLUDE_DIR}
@@ -83,8 +84,9 @@ include_directories(
 )
 file(GLOB_RECURSE UTILS ${PROJECT_SOURCE_DIR}/Thirdparty/utils/src/*cpp)
 file(GLOB_RECURSE NODE_SRCS ${PROJECT_SOURCE_DIR}/Thirdparty/utils/src/*_node.cpp)
+file(GLOB_RECURSE UTILS_CONTRIBE ${PROJECT_SOURCE_DIR}/Thirdparty/utils/src/opencv_contribe/*cpp)
 list(REMOVE_ITEM UTILS ${NODE_SRCS})
-add_library(utils ${UTILS})
+add_library(utils ${UTILS} ${UTILS_CONTRIBE})
 target_link_libraries(utils 
 ${CERES_LIBRARIES}
 ${catkin_LIBRARIES}

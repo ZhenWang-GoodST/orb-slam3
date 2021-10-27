@@ -1349,8 +1349,23 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp,
         else
             cvtColor(mImGray,mImGray,cv::COLOR_BGRA2GRAY);
     }
+    if (debugmode == 1) {
+        cv::Mat stretchIm;
+        stretchIm = tergeo::visualodometry::stretch(mImGray, 0, 0, 0);
+        mImGray = stretchIm;
+    } else if (debugmode == 2) {
+        cv::equalizeHist(mImGray, mImGray);
+    } else if (debugmode == 3) {
+        cv::Size ksize(5, 5);
+        double simX = 2;
+        cv::Mat tmp = mImGray.clone();
+        cv::GaussianBlur(mImGray, mImGray, ksize, simX);
+    } else if (debugmode == 4) {
+        cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
+        clahe->apply(mImGray, mImGray);
+    }
     // cv::Mat stretchIm;
-    // stretchIm = tergeo::visualodometry::stretch(mImGray, 50, 230);
+    // stretchIm = tergeo::visualodometry::stretch(mImGray, 0, 0, 0);
     // mImGray = stretchIm;
     // cv::equalizeHist(mImGray, mImGray);
     // cv::Size ksize(5, 5);
@@ -2348,7 +2363,29 @@ void Tracking::MonocularInitialization()
 
             return;
         }
-
+        
+        // Match Line
+        cv::Ptr<cv::line_descriptor::BinaryDescriptorMatcher> bdm = cv::line_descriptor::BinaryDescriptorMatcher::createBinaryDescriptorMatcher();
+        std::vector<cv::DMatch> matches;
+        std::vector<std::vector<cv::DMatch>> knnmatches;
+        bdm->knnMatch(mCurrentFrame.lineDescriptor, mInitialFrame.lineDescriptor, knnmatches, 1, cv::Mat());
+        bdm->match(mCurrentFrame.lineDescriptor, mInitialFrame.lineDescriptor, matches, cv::Mat());
+        cv::Mat match_line_image;
+        cv::Scalar single_color(0, 0, 255), match_color(0, 255, 0);
+        cv::Mat _left, _right;
+        cv::cvtColor(mInitialFrame.monoImage, _left, cv::COLOR_GRAY2BGR);
+        cv::cvtColor(mCurrentFrame.monoImage, _right, cv::COLOR_GRAY2BGR);
+        std::vector<char> mask_line(matches.size(), 1);
+        cv::line_descriptor_custom::drawLineMatches(_left, mInitialFrame.mvKeyLines, _right, mCurrentFrame.mvKeyLines, knnmatches[0], match_line_image, match_color, single_color, mask_line);
+        cv::imshow("line", match_line_image);
+        cv::waitKey();
+        // for (int i = 0; i < matches.size(); ++i) {
+        //     cv::Point2f left_s;
+        //     left_s.x = mInitialFrame.mvKeyLines[matches[i].queryIdx].startPointX;
+        //     left_s.x = mInitialFrame.mvKeyLines[matches[i].queryIdx].startPointX;
+        //     cv::line()
+        // }
+        
         // Find correspondences
         ORBmatcher matcher(0.9,true);
         // TMatcher tmatcher;
@@ -2361,7 +2398,7 @@ void Tracking::MonocularInitialization()
         TMatch tmatch = tergeo::visualodometry::baseTemplate(currIm, inner_patch, matched_image);
         cv::imwrite(glog_dir + "/template_match.jpg", matched_image);
 
-        int nmatches = matcher.SearchForInitialization(mInitialFrame,mCurrentFrame,mvbPrevMatched,mvIniMatches,100);
+        int nmatches = matcher.SearchForInitialization(mInitialFrame,mCurrentFrame,mvbPrevMatched,mvIniMatches,winsize);
         LOG(INFO) << "\n" << tmatch ;
         cv::Mat show_map;
         // cv::namedWindow("show_map", cv::WINDOW_NORMAL);
@@ -2388,11 +2425,24 @@ void Tracking::MonocularInitialization()
 
         cv::Mat Rcw; // Current Camera Rotation
         cv::Mat tcw; // Current Camera Translation
-        vector<bool> vbTriangulated; // Triangulated Correspondences (mvIniMatches)
+        vector<int> vbTriangulated; // Triangulated Correspondences (mvIniMatches)
         bool res = mpCamera->ReconstructWithTwoViews(mInitialFrame.mvKeysUn,mCurrentFrame.mvKeysUn,mvIniMatches,Rcw,tcw,mvIniP3D,vbTriangulated);
         // of << "failed to initilize\n";
         // of.close();
-
+        std::vector<cv::Point2f> inlierLPts = {}, inlierRPts = {}, trianLPts = {}, trianRPts = {};
+        for (int i = 0; i < vbTriangulated.size(); ++i) {
+            if (vbTriangulated[i] == 1) {
+                inlierLPts.push_back(mInitialFrame.mvKeysUn[i].pt);
+                inlierRPts.push_back(mCurrentFrame.mvKeysUn[mvIniMatches[i]].pt);
+            } else if(vbTriangulated[i] == 2) {
+                trianLPts.push_back(mInitialFrame.mvKeysUn[i].pt);
+                trianRPts.push_back(mCurrentFrame.mvKeysUn[mvIniMatches[i]].pt);
+            }
+        }
+        tergeo::visualodometry::drawMatchPts(mInitialFrame.monoImage, mCurrentFrame.monoImage, show_map, inlierLPts, inlierRPts, tergeo::visualodometry::red, true);
+        cv::imwrite(glog_dir + "/match_inlier.jpg", show_map);
+        tergeo::visualodometry::drawMatchPts(mInitialFrame.monoImage, mCurrentFrame.monoImage, show_map, trianLPts, trianRPts, tergeo::visualodometry::green, true); 
+        cv::imwrite(glog_dir + "/match_trian.jpg", show_map);
         if(res)
         {
             // cv::Mat show_map;
@@ -2418,13 +2468,14 @@ void Tracking::MonocularInitialization()
             of << "success initilized at stamp " << std::to_string(mCurrentFrame.mTimeStamp) << "\n";
             of.close();
             for(size_t i=0, iend=mvIniMatches.size(); i<iend;i++)
-            {
-                if(mvIniMatches[i]>=0 && !vbTriangulated[i])
+            {//vbTriangulated[i] == 1 是内点，vbTriangulated[i] == 2 成功三角化
+                if(mvIniMatches[i]>=0 && vbTriangulated[i] == 2)
                 {
                     mvIniMatches[i]=-1;
                     nmatches--;
                 }
             }
+            cv::imwrite(glog_dir + "/match.jpg", show_map);
             for (int i = 0; i < mInitialFrame.mvKeysUn.size(); ++i) {
                 if (mvIniMatches[i] < 0) continue;
                 LOG(INFO) << "";
@@ -2433,13 +2484,13 @@ void Tracking::MonocularInitialization()
             }
 
             // Set Frame Poses
-            mInitialFrame.SetPose(cv::Mat::eye(4,4,CV_32F));
-            cv::Mat Tcw = cv::Mat::eye(4,4,CV_32F);
-            Rcw.copyTo(Tcw.rowRange(0,3).colRange(0,3));
-            tcw.copyTo(Tcw.rowRange(0,3).col(3));
-            mCurrentFrame.SetPose(Tcw);
+            // mInitialFrame.SetPose(cv::Mat::eye(4,4,CV_32F));
+            // cv::Mat Tcw = cv::Mat::eye(4,4,CV_32F);
+            // Rcw.copyTo(Tcw.rowRange(0,3).colRange(0,3));
+            // tcw.copyTo(Tcw.rowRange(0,3).col(3));
+            // mCurrentFrame.SetPose(Tcw);
 
-            CreateInitialMapMonocular();
+            // CreateInitialMapMonocular();
 
         } else {
             std::ofstream of(log_dir + "/info.txt", std::ios_base::app);

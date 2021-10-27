@@ -33,9 +33,11 @@ void printCVPoint(std::vector<T> pts1, std::vector<T> pts2) {
 
 void drawCube(cv::Mat &image, const std::vector<cv::Point2f> cube, cv::Scalar color = cv::Scalar(0, 255, 0));
 
+void adaptiveThreshold(const cv::Mat &hist, double thresh, int &minId, int &maxId);
 
 cv::Mat stretch(const cv::Mat& image,int minvalue = 0, int maxvalue = 255);
 
+cv::Mat stretch(const cv::Mat& image, int minvalue = 0, int maxvalue = 255, bool makeFloat = false);
 void singleMatch(const cv::Mat &image, 
     const cv::Mat &templ, cv::Mat &TMatched_image, Match match);
 

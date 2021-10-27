@@ -35,6 +35,92 @@ cv::Mat stretch(const cv::Mat& image,int minvalue, int maxvalue) {
     cv::LUT(image,lut,result);
     return result;
 }
+void adaptiveThreshold(const cv::Mat &hist, double thresh, int &minId, int &maxId) {
+    cv::Point minLoc, maxLoc;
+    double minV, maxV;
+    cv::minMaxLoc(hist, &minV, &maxV, &minLoc, &maxLoc);
+    double inlier = maxV;
+    double total;
+    cv::Scalar output = cv::sum(hist);
+    total = output[0];
+    minId = maxId = maxLoc.y;
+    int minCount = 1000, maxCount = 1000;
+    while ((inlier / total) < thresh || minCount > 400 || maxCount > 400) {
+    // while ((inlier / total) < thresh) {
+        if (minId - 1 < 0 || maxId + 1 > 255) break;
+        minCount = hist.at<float>(0, minId - 1);
+        maxCount = hist.at<float>(0, maxId + 1);
+        if (minCount > maxCount) {
+            minId -= 1;
+            inlier += minCount; 
+        } else {
+            maxId += 1;
+            inlier += maxCount; 
+        }
+    }
+    std::cout << "final inlier: " << inlier / total << "\n";
+}
+//直方图拉伸
+cv::Mat stretch(const cv::Mat& image, int minvalue, int maxvalue, bool makeFloat) {
+    int channels[1];//使用的通道数量
+    int histSize[1];//直方图箱子（bin）的数量
+    const float* ranges[1];//像素值范围
+    float hranges[2];
+    histSize[0] = 256;//箱子个数设为256
+    channels[0] = 0;//使用一个通道，默认为0
+    hranges[0] = 0.0;
+    hranges[1] = 256.0;
+    ranges[0] = hranges;//值范围
+    cv::Mat hist;
+    cv::calcHist(&image, 1, channels, cv::Mat(), hist, 1,//一维直方图
+        histSize, ranges);
+    if (minvalue == 0 && maxvalue == 0) {
+        adaptiveThreshold(hist, 0.98, minvalue, maxvalue);
+    }
+    std::cout << "minvalue: " << minvalue << " maxvalue: " << maxvalue << "\n"; 
+    cv::Mat fMat, result = cv::Mat::zeros(image.size(), image.type());
+    if (makeFloat) {
+        image.convertTo(fMat, CV_32F);
+        double sigX = 2;
+        cv::Size ksize(9, 9);
+        int range = maxvalue - minvalue;
+        cv::GaussianBlur(fMat, fMat, ksize, sigX);
+        for (int i = 0; i < image.rows; ++i) {
+            uchar *ip = result.ptr<uchar>(i);
+            float *fp = fMat.ptr<float>(i);
+            for (int j = 0; j < image.cols; ++j) {
+                float fValue = *fp++;
+                if ((int)(image.at<uchar>(i, j)) < minvalue) {
+                    *ip++ = 0;
+                } else if ((int)(image.at<uchar>(i, j)) > maxvalue) {
+                    *ip++ = 255;
+                } else {
+                    *ip++ = 255 * (fValue - minvalue) / range;
+                }
+            }
+            ip = nullptr;
+            fp = nullptr;
+        }
+        return result;
+    } else {
+        //创建查找表
+        cv::Mat lut(1, 256, CV_8U);
+        //构建查找表
+        for (int i = 0; i < 256;i++) {
+            if (i < minvalue)
+                lut.at<uchar>(i) = 0;
+            else if (i>maxvalue)
+                lut.at<uchar>(i) = 255;
+            else {
+                lut.at<uchar>(i) = cvRound(255.0*(i - minvalue) / (maxvalue - minvalue));
+            }
+        }
+        cv::Mat result;
+        cv::LUT(image,lut,result);
+        return result;
+    }
+    return result;
+}
 
 void singleMatch(const cv::Mat &image, 
     const cv::Mat &templ, cv::Mat &TMatched_image, Match match) {
@@ -227,6 +313,7 @@ void drawMatchPts(
         cv::Rect rect2(cv::Point2f(left.cols, 0), left.size());
         left.copyTo(show_image(rect1));
         right.copyTo(show_image(rect2));
+        cv::cvtColor(show_image, show_image, cv::COLOR_GRAY2BGR);
     }
     for (int i = 0; i < pt_size; ++i) {
         cv::Point2d pt1 = p1[i];

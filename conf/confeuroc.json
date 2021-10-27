@@ -1,8 +1,10 @@
 {
-    "yaml": "/home/tonglu/VO-LOAM/github/orb-slam3/Examples/Monocular/EuRoC.yaml",
+    "type": 2,
+    "root_path":"/media/wz/Elements/data/OpenSource/EuRoC/robotics.ethz.ch/~asl-datasets/ijrr_euroc_mav_dataset/machine_hall/MH_01_easy/MH_01_easy",
+    "start_stamp": "0",
+    "yaml": "/home/wz/VO-LOAM/github/orb-slam3/Examples/Monocular/EuRoC.yaml",
+    "imagepath":"/media/wz/Elements/data/OpenSource/EuRoC/robotics.ethz.ch/~asl-datasets/ijrr_euroc_mav_dataset/machine_hall/MH_01_easy/MH_01_easy/mav0/cam0/data",
+    "stamppath": "/home/wz/VO-LOAM/github/orb-slam3/Examples/Monocular/EuRoC_TimeStamps/MH01.txt",
     "vocabulary" : "/home/tonglu/VO-LOAM/github/orb-slam3/Vocabulary/ORBvoc.bin",
-    "imagepath":"/media/tonglu/新加卷/data/opensource/MH_01_easy/MH_01_easy",
-    "stamppath": "/home/tonglu/VO-LOAM/github/orb-slam3/Examples/Monocular/EuRoC_TimeStamps/MH01.txt",
-    "num_seq": 1,
-    "start_stamp": "1630322557.148747"
+    "num_seq": 1
 }

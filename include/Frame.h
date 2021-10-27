@@ -31,10 +31,15 @@
 
 #include <mutex>
 #include <opencv2/opencv.hpp>
+#include <opencv2/line_descriptor/descriptor.hpp>
 #include <glog/logging.h>
+#include "orb_utils.h"
 extern std::string log_dir;
 extern std::string glog_dir;
 extern std::string global_timestamp;
+extern int winsize;
+extern int debugmode;
+extern int quant;
 
 namespace ORB_SLAM3
 {
@@ -47,6 +52,11 @@ class ConstraintPoseImu;
 class GeometricCamera;
 class ORBextractor;
 
+struct KeyLine {
+    cv::Point2f start;
+    cv::Point2f end;
+    double width;
+};
 class Frame
 {
 public:
@@ -66,6 +76,9 @@ public:
 
     // Extract ORB on the image. 0 for left image and 1 for right image.
     void ExtractORB(int flag, const cv::Mat &im, const int x0, const int x1);
+
+    // Extract Line using LSD on the image
+    void ExtractLine(const cv::Mat &im, double quant, double log_eps);
 
     // Compute Bag of Words representation.
     void ComputeBoW();
@@ -159,6 +172,15 @@ public:
     // Threshold close/far points. Close points are inserted from 1 view.
     // Far points are inserted as in the monocular case from 2 views.
     float mThDepth;
+    
+    // Number of KeyLines.
+    int LineN;
+
+    // Line descriptor
+    cv::Mat lineDescriptor;
+
+    // std::vector<KeyLine> mvKeyLines = {};
+    std::vector<cv::line_descriptor::KeyLine> mvKeyLines;
 
     // Number of KeyPoints.
     int N;

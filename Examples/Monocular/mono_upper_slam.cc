@@ -34,7 +34,7 @@ using namespace std;
 
 void LoadImages(const string &strImagePath, const string &strPathTimes,
                 vector<string> &vstrImages, vector<double> &vTimeStamps);
-
+int type = 0;
 int main(int argc, char **argv)
 {  
     // if(argc < 5)
@@ -44,13 +44,19 @@ int main(int argc, char **argv)
     // }
 
     // const int num_seq = (argc-3)/2;
+    cv::CommandLineParser parser(argc, argv,
+        "{ help h usage ? |      | show this message }"
+        "{ winsize w      |      | (required) path to reference image }"
+        "{ debugmode d    |      | (required) path to cascade xml file }"
+        "{ data  t        |      | (optional) path to video output folder }"
+    );
     int num_seq;
-    int type = 0;
+    // int type = 0;
     std::string root_path = "";
     std::string yaml = "";
     std::string vocabulary = "";
     std::string start_stamp = "";
-    if (argc > 3) {
+    if (argc == 5) {
         type = atoi(argv[1]);
         root_path = argv[2];
         start_stamp = argv[3];
@@ -61,6 +67,35 @@ int main(int argc, char **argv)
         readParameter<std::string>("start_stamp", start_stamp);
         readParameter<std::string>("yaml", yaml);
     }
+    //intrinsic read
+    readParameter<int>("winsize", winsize);
+    readParameter<int>("debugmode", debugmode);
+    readParameter<int>("quant", quant);
+    if (parser.has("help")){
+        parser.printMessage();
+        return 0;
+    }
+    // if (parser.has("winsize")) {
+    //     std::string tt = parser.get<string>("winsize");
+    //     std::cout << tt << " cv\n";
+    // }
+    // if (parser.has("debugmode")) {
+    //     std::string tt = parser.get<string>("debugmode");
+    //     std::cout << tt << " cv\n";
+    // }
+    if (argc == 3) {
+        winsize = atoi(argv[1]);
+        debugmode = atoi(argv[2]);
+        std::cout << winsize << "\n";
+        std::cout << debugmode << "\n";
+    }
+    
+    std::map<int, std::string> image_pro_map;
+    image_pro_map[0] = "-ini-non-";
+    image_pro_map[1] = "-ini-stretch-";
+    image_pro_map[2] = "-ini-equal-";
+    image_pro_map[3] = "-ini-gauss-";
+    image_pro_map[4] = "-ini-CLANE-";
     // readParameter<int>("num_seq", num_seq);
     num_seq = 1;
     cout << "num_seq = " << num_seq << endl;
@@ -133,7 +168,8 @@ int main(int argc, char **argv)
     vocabulary = "/home/wz/VO-LOAM/github/orb-slam3/Vocabulary/ORBvoc.bin";
     ORB_SLAM3::System SLAM(vocabulary,yaml,ORB_SLAM3::System::MONOCULAR, true);
 
-    log_dir = root_path + "/log/camera" + std::to_string(type) + "/";
+    log_dir = root_path + "/log/camera" + std::to_string(type) + image_pro_map[debugmode] + std::to_string(winsize) + "/";
+    // log_dir = root_path + "/log/camera" + std::to_string(type) + image_pro_map[debugmode] + std::to_string(winsize) + "/";
     std::string pangolin_dir = log_dir + "pangolin";
     std::string tracking_dir = log_dir + "tracking";
     createFolders(pangolin_dir.c_str());
@@ -243,9 +279,15 @@ void LoadImages(const string &strImagePath, const string &strPathTimes,
         {
             stringstream ss;
             ss << s;
-            vstrImages.push_back(strImagePath + "/" + ss.str() + ".jpg");
+            if (type == 2) {
+                vstrImages.push_back(strImagePath + "/" + ss.str() + ".png");
+            } else {
+                vstrImages.push_back(strImagePath + "/" + ss.str() + ".jpg");
+            }
+            
             double t;
             ss >> t;
+            if (type == 2) t /= 1e9;
             vTimeStamps.push_back(t);
 
         }

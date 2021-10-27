@@ -33,6 +33,9 @@
 std::string log_dir = ""; 
 std::string glog_dir = "";
 std::string global_timestamp = "";
+int winsize = 100;
+int debugmode = 0;
+int quant = 1;
 
 namespace ORB_SLAM3
 {
@@ -73,8 +76,9 @@ Frame::Frame(const Frame &frame)
      monoLeft(frame.monoLeft), monoRight(frame.monoRight), mvLeftToRightMatch(frame.mvLeftToRightMatch),
      mvRightToLeftMatch(frame.mvRightToLeftMatch), mvStereo3Dpoints(frame.mvStereo3Dpoints),
      mTlr(frame.mTlr.clone()), mRlr(frame.mRlr.clone()), mtlr(frame.mtlr.clone()), mTrl(frame.mTrl.clone()),
-     mTrlx(frame.mTrlx), mTlrx(frame.mTlrx), mOwx(frame.mOwx), mRcwx(frame.mRcwx), mtcwx(frame.mtcwx), monoImage(frame.monoImage), monoShowImage(frame.monoShowImage)
+     mTrlx(frame.mTrlx), mTlrx(frame.mTlrx), mOwx(frame.mOwx), mRcwx(frame.mRcwx), mtcwx(frame.mtcwx), monoImage(frame.monoImage), monoShowImage(frame.monoShowImage), mvKeyLines(frame.mvKeyLines), LineN(frame.LineN)
 {
+    lineDescriptor = frame.lineDescriptor.clone();
     for(int i=0;i<FRAME_GRID_COLS;i++)
         for(int j=0; j<FRAME_GRID_ROWS; j++){
             mGrid[i][j]=frame.mGrid[i][j];
@@ -311,6 +315,7 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
     std::chrono::steady_clock::time_point time_StartExtORB = std::chrono::steady_clock::now();
 #endif
     ExtractORB(0,imGray,0,1000);
+    ExtractLine(imGray, quant, 0);
 #ifdef REGISTER_TIMES
     std::chrono::steady_clock::time_point time_EndExtORB = std::chrono::steady_clock::now();
 
@@ -425,6 +430,29 @@ void Frame::ExtractORB(int flag, const cv::Mat &im, const int x0, const int x1)
         monoLeft = (*mpORBextractorLeft)(im,cv::Mat(),mvKeys,mDescriptors,vLapping);
     else
         monoRight = (*mpORBextractorRight)(im,cv::Mat(),mvKeysRight,mDescriptorsRight,vLapping);
+}
+
+void Frame::ExtractLine(const cv::Mat &im, double quant, double log_eps) {
+    // cv::Ptr<cv::LineSegmentDetector> lsd_ = cv::createLineSegmentDetector();
+    //1, 0.8, 0.6, quant, 22.5, log_eps
+    cv::Ptr<cv::line_descriptor_custom::LSDDetectorC> lsd_ = cv::line_descriptor_custom::LSDDetectorC::createLSDDetectorC();
+    cv::Mat lines;
+    cv::line_descriptor_custom::LSDDetectorC::LSDOptions lsdparam;
+    // lsdparam.refine       = 1;     //1     	The way found lines will be refined
+    lsdparam.scale        = 0.8;   //0.8   	The scale of the image that will be used to find the lines. Range (0..1].
+    lsdparam.sigma_scale  = 0.6;	//0.6  	Sigma for Gaussian filter. It is computed as sigma = _sigma_scale/_scale.
+    lsdparam.quant        = quant;	//2.0   Bound to the quantization error on the gradient norm
+    lsdparam.ang_th       = 22.5;	//22.5	Gradient angle tolerance in degrees
+    lsdparam.log_eps      = log_eps;	//0		Detection threshold: -log10(NFA) > log_eps. Used only when advance refinement is chosen
+    lsdparam.density_th   = 0.7;	//0.7	Minimal density of aligned region points in the enclosing rectangle.
+    lsdparam.n_bins       = 1024;	//1024 	Number of bins in pseudo-ordering of gradient modulus.
+    lsdparam.min_length = 0.05 * std::min(im.rows, im.cols);
+    std::vector<cv::line_descriptor::KeyLine> keylines = {};
+    cv::Mat mask;
+    lsd_->detect(im, mvKeyLines, 1, 1, lsdparam, mask);
+    LineN = mvKeyLines.size();
+    cv::Ptr<cv::line_descriptor::BinaryDescriptor> bd_ = cv::line_descriptor::BinaryDescriptor::createBinaryDescriptor(  );
+    bd_->compute(im, mvKeyLines, lineDescriptor);
 }
 
 void Frame::SetPose(cv::Mat Tcw)
