@@ -2376,7 +2376,8 @@ void Tracking::MonocularInitialization()
         cv::cvtColor(mInitialFrame.monoImage, _left, cv::COLOR_GRAY2BGR);
         cv::cvtColor(mCurrentFrame.monoImage, _right, cv::COLOR_GRAY2BGR);
         std::vector<char> mask_line(matches.size(), 1);
-        cv::line_descriptor_custom::drawLineMatches(_left, mInitialFrame.mvKeyLines, _right, mCurrentFrame.mvKeyLines, knnmatches[0], match_line_image, match_color, single_color, mask_line);
+        // cv::line_descriptor_custom::drawLineMatches(_left, mInitialFrame.mvKeyLines, _right, mCurrentFrame.mvKeyLines, knnmatches[0], match_line_image, match_color, single_color, mask_line);
+        cv::line_descriptor_custom::drawLineMatches(_left, mInitialFrame.mvKeyLines, _right, mCurrentFrame.mvKeyLines, matches, match_line_image, match_color, single_color, mask_line);
         cv::imshow("line", match_line_image);
         cv::waitKey();
         // for (int i = 0; i < matches.size(); ++i) {

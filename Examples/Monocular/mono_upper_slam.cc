@@ -67,15 +67,15 @@ int main(int argc, char **argv)
         start_stamp = argv[3];
         yaml = argv[4];
     } else {
-        readParameter<int>("type", type, conf_file);
-        readParameter<std::string>("root_path", root_path, conf_file);
-        readParameter<std::string>("start_stamp", start_stamp, conf_file);
-        readParameter<std::string>("yaml", yaml, conf_file);
+        type = cfg["type"];
+        root_path = cfg["root_path"];
+        start_stamp = cfg["start_stamp"];
+        yaml = cfg["yaml"];
     }
     //intrinsic read
-    readParameter<int>("winsize", winsize, conf_file);
-    readParameter<int>("debugmode", debugmode, conf_file);
-    readParameter<int>("quant", quant, conf_file);
+    winsize = cfg["winsize"];
+    debugmode = cfg["debugmode"];
+    quant = cfg["quant"];
     if (parser.has("help")){
         parser.printMessage();
         return 0;
@@ -135,8 +135,8 @@ int main(int argc, char **argv)
         stamppath = root_path + "/camera/color/image_raw1info.txt";
     } else if(type == 2) {//Euroc
         // yaml = "/home/tonglu/VO-LOAM/github/orb-slam3/Examples/Monocular/EuRoC.yaml";
-        readParameter<std::string>("imagepath", imagepath, conf_file);
-        readParameter<std::string>("stamppath", stamppath, conf_file);
+        imagepath = cfg["imagepath"];
+        stamppath = cfg["stamppath"];
     }
     for (seq = 0; seq<num_seq; seq++)
     {

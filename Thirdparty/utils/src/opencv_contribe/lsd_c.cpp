@@ -99,7 +99,7 @@
 #include <math.h>
 #include <limits.h>
 #include <float.h>
-#include "lsd.h"
+#include "lsd_c.h"
 
 /** ln(10) */
 #ifndef M_LN10

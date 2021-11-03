@@ -15,7 +15,7 @@
 #include "typeconvertor.h"
 #include "types.hpp"
 #include "vo_type_utils.h"
-#include "opencv_contribe/lsd.h"
+#include "opencv_contribe/lsd_c.h"
 #include "descriptor_custom.hpp"
 
 typedef tergeo::visualodometry::Matcher TMatcher;

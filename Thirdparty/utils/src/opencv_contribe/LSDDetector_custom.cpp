@@ -39,7 +39,7 @@
  //
  //M*/
 
-#include "lsd.h"
+#include "lsd_c.h"
 #include "descriptor_custom.hpp"
 
 //using namespace cv;

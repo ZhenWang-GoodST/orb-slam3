@@ -448,7 +448,7 @@ void Frame::ExtractLine(const cv::Mat &im, double quant, double log_eps) {
     lsdparam.log_eps      = log_eps;	//0		Detection threshold: -log10(NFA) > log_eps. Used only when advance refinement is chosen
     lsdparam.density_th   = 0.7;	//0.7	Minimal density of aligned region points in the enclosing rectangle.
     lsdparam.n_bins       = 1024;	//1024 	Number of bins in pseudo-ordering of gradient modulus.
-    lsdparam.min_length = 0.05 * std::min(im.rows, im.cols);
+    lsdparam.min_length = atof(cfg["line_ratio"].dump().c_str()) * std::min(im.rows, im.cols);
     std::vector<cv::line_descriptor::KeyLine> keylines = {};
     cv::Mat mask;
     lsd_->detect(im, mvKeyLines, 1, 1, lsdparam, mask);

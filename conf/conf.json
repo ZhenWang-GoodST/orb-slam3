@@ -9,5 +9,6 @@
     "num_seq": 1,
     "winsize": 100,
     "debugmode": 0,
-    "quant": 1
+    "quant": 1,
+    "line_ratio": 0.125
 }
