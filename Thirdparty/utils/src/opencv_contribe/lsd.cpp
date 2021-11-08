@@ -39,7 +39,7 @@
 //
 //M*/
 
-#include "precomp.hpp"
+#include "opencv_contribe.h"
 #include <vector>
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -157,8 +157,9 @@ inline double log_gamma_lanczos(const double& x)
     return a + log(b);
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 namespace cv{
+
+namespace cv_contribe{
 
 class LineSegmentDetectorImpl : public LineSegmentDetector
 {
@@ -409,7 +410,7 @@ LineSegmentDetectorImpl::LineSegmentDetectorImpl(int _refine, double _scale, dou
 void LineSegmentDetectorImpl::detect(InputArray _image, OutputArray _lines,
                 OutputArray _width, OutputArray _prec, OutputArray _nfa)
 {
-    CV_INSTRUMENT_REGION()
+    // CV_INSTRUMENT_REGION()
 
     image = _image.getMat();
     CV_Assert(!image.empty() && image.type() == CV_8UC1);
@@ -1138,7 +1139,7 @@ inline bool LineSegmentDetectorImpl::isAligned(int x, int y, const double& theta
 
 void LineSegmentDetectorImpl::drawSegments(InputOutputArray _image, InputArray lines)
 {
-    CV_INSTRUMENT_REGION()
+    // CV_INSTRUMENT_REGION()
 
     CV_Assert(!_image.empty() && (_image.channels() == 1 || _image.channels() == 3));
 
@@ -1149,7 +1150,7 @@ void LineSegmentDetectorImpl::drawSegments(InputOutputArray _image, InputArray l
     }
     else if (_image.channels() == 3)
     {
-        cvtColor(_image, gray, CV_BGR2GRAY);
+        cvtColor(_image, gray, COLOR_BGR2GRAY);
     }
 
     // Create a 3 channel image in order to draw colored lines
@@ -1177,7 +1178,7 @@ void LineSegmentDetectorImpl::drawSegments(InputOutputArray _image, InputArray l
 
 int LineSegmentDetectorImpl::compareSegments(const Size& size, InputArray lines1, InputArray lines2, InputOutputArray _image)
 {
-    CV_INSTRUMENT_REGION()
+    // CV_INSTRUMENT_REGION()
 
     Size sz = size;
     if (_image.needed() && _image.size() != size) sz = _image.size();
@@ -1236,5 +1237,5 @@ int LineSegmentDetectorImpl::compareSegments(const Size& size, InputArray lines1
 
     return N;
 }
-
+}
 } // namespace cv

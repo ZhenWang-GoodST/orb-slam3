@@ -1361,7 +1361,7 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp,
         cv::Mat tmp = mImGray.clone();
         cv::GaussianBlur(mImGray, mImGray, ksize, simX);
     } else if (debugmode == 4) {
-        cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
+        cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(3.0, cv::Size(8, 8));
         clahe->apply(mImGray, mImGray);
     }
     // cv::Mat stretchIm;
@@ -2379,7 +2379,7 @@ void Tracking::MonocularInitialization()
         // cv::line_descriptor_custom::drawLineMatches(_left, mInitialFrame.mvKeyLines, _right, mCurrentFrame.mvKeyLines, knnmatches[0], match_line_image, match_color, single_color, mask_line);
         cv::line_descriptor_custom::drawLineMatches(_left, mInitialFrame.mvKeyLines, _right, mCurrentFrame.mvKeyLines, matches, match_line_image, match_color, single_color, mask_line);
         cv::imshow("line", match_line_image);
-        cv::waitKey();
+        // cv::waitKey();
         // for (int i = 0; i < matches.size(); ++i) {
         //     cv::Point2f left_s;
         //     left_s.x = mInitialFrame.mvKeyLines[matches[i].queryIdx].startPointX;

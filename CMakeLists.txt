@@ -73,6 +73,7 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(Ceres)
 include_directories(
   ${PROJECT_SOURCE_DIR}/Thirdparty/utils/include
+  ${PROJECT_SOURCE_DIR}/Thirdparty/utils/include/lbd_matcher
   ${PROJECT_SOURCE_DIR}/Thirdparty/utils/include/opencv_contribe
   ${catkin_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS} 
@@ -82,8 +83,12 @@ include_directories(
   ${CERES_INCLUDE_DIRS}
 # /home/wz/github/install/ceres_docker/include
 )
+SET(ARPACK_INCLUDE_DIR "/usr/include/arpack++")
+SET(ARPACK_LINK_DIR "/usr/lib")
+include_directories(${ARPACK_INCLUDE_DIR})
 file(GLOB_RECURSE UTILS ${PROJECT_SOURCE_DIR}/Thirdparty/utils/src/*cpp)
 file(GLOB_RECURSE NODE_SRCS ${PROJECT_SOURCE_DIR}/Thirdparty/utils/src/*_node.cpp)
+file(GLOB_RECURSE UTILS_CONTRIBE ${PROJECT_SOURCE_DIR}/Thirdparty/utils/src/lbd_matcher/*cpp)
 file(GLOB_RECURSE UTILS_CONTRIBE ${PROJECT_SOURCE_DIR}/Thirdparty/utils/src/opencv_contribe/*cpp)
 list(REMOVE_ITEM UTILS ${NODE_SRCS})
 add_library(utils ${UTILS} ${UTILS_CONTRIBE})
@@ -92,6 +97,7 @@ ${CERES_LIBRARIES}
 ${catkin_LIBRARIES}
 ${OpenCV_LIBRARIES}
 ${PCL_LIBRARIES}
+arpack /usr/lib/x86_64-linux-gnu/libsuperlu.so arpack++
 )
 
 add_library(${PROJECT_NAME} SHARED

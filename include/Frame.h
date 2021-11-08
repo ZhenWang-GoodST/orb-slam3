@@ -184,6 +184,8 @@ public:
     // std::vector<KeyLine> mvKeyLines = {};
     std::vector<cv::line_descriptor::KeyLine> mvKeyLines;
 
+    ScaleLines scalelines;
+
     // Number of KeyPoints.
     int N;
 

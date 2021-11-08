@@ -17,6 +17,10 @@
 #include "vo_type_utils.h"
 #include "opencv_contribe/lsd_c.h"
 #include "descriptor_custom.hpp"
+#include "lbd_matcher/EDLineDetector.h"
+#include "lbd_matcher/LineDescriptor.h"
+#include "lbd_matcher/LineStructure.h"
+#include "lbd_matcher/PairwiseLineMatching.h"
 
 typedef tergeo::visualodometry::Matcher TMatcher;
 typedef tergeo::visualodometry::Match TMatch;

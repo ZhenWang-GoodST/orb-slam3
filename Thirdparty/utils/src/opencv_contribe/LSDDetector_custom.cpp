@@ -41,6 +41,10 @@
 
 #include "lsd_c.h"
 #include "descriptor_custom.hpp"
+#include "opencv_contribe.h"
+// #include "LineDescriptor.h"
+// #include "LineStructure.h"
+// #include "PairwiseLineMatching.h"
 
 //using namespace cv;
 namespace cv
@@ -244,15 +248,15 @@ void LSDDetectorC::detectImpl( const Mat& imageSrc, std::vector<KeyLine>& keylin
   lsd->computeGaussianPyramid( image, numOctaves, scale );
 
   /* create an LSD extractor */
-  cv::Ptr<cv::LineSegmentDetector> ls;
-  // ls = cv::createLineSegmentDetector( opts.refine,
-                                        //  opts.scale,
-                                        //  opts.sigma_scale,
-                                        //  opts.quant,
-                                        //  opts.ang_th,
-                                        //  opts.log_eps,
-                                        //  opts.density_th,
-                                        //  opts.n_bins);
+  cv::Ptr<cv::cv_contribe::LineSegmentDetector> ls;
+  ls = cv::cv_contribe::createLineSegmentDetector( opts.refine,
+                                         opts.scale,
+                                         opts.sigma_scale,
+                                         opts.quant,
+                                         opts.ang_th,
+                                         opts.log_eps,
+                                         opts.density_th,
+                                         opts.n_bins);
 
   /* prepare a vector to host extracted segments */
   std::vector<std::vector<cv::Vec4f> > lines_lsd;
@@ -263,35 +267,35 @@ void LSDDetectorC::detectImpl( const Mat& imageSrc, std::vector<KeyLine>& keylin
   for ( int i = 0; i < numOctaves; i++ )
   {
     std::vector<Vec4f> octave_lines;
-    // ls->detect( gaussianPyrs[i], octave_lines );
-    int n;
-    int reg = 0;
-    double *lsd_image = new double[image.cols * image.rows];
-    for (int c = 0; c < _cols; ++c) {
-      for (int r = 0; r < _rows; ++r) {
-        lsd_image[c + r * _cols] = image.at<uchar>(r, c);
-      }
-    }
-    int * region;
-    int regX,regY;
-    double * segs = LineSegmentDetection( 
-    &n, lsd_image, image.cols, image.rows, opts.scale, opts.sigma_scale, opts.quant, 
-    opts.ang_th, opts.log_eps, opts.density_th, opts.n_bins,reg ? &region : NULL, &regX, &regY );
-    cv::Mat show_image;
-    cvtColor( image, show_image, COLOR_GRAY2BGR );
+    ls->detect( gaussianPyrs[i], octave_lines );
+    // int n;
+    // int reg = 0;
+    // double *lsd_image = new double[image.cols * image.rows];
+    // for (int c = 0; c < _cols; ++c) {
+    //   for (int r = 0; r < _rows; ++r) {
+    //     lsd_image[c + r * _cols] = image.at<uchar>(r, c);
+    //   }
+    // }
+    // int * region;
+    // int regX,regY;
+    // double * segs = LineSegmentDetection( 
+    // &n, lsd_image, image.cols, image.rows, opts.scale, opts.sigma_scale, opts.quant, 
+    // opts.ang_th, opts.log_eps, opts.density_th, opts.n_bins,reg ? &region : NULL, &regX, &regY );
+    // cv::Mat show_image;
+    // cvtColor( image, show_image, COLOR_GRAY2BGR );
     // image.convertTo(show_image, CV_8UC3);
-    for (int l = 0; l < n; ++l) {
-      double x1 = segs[7*l];
-      double y1 = segs[7*l + 1];
-      double x2 = segs[7*l + 2];
-      double y2 = segs[7*l + 3];
-      octave_lines.push_back(cv::Vec4f(x1, y1, x2, y2));
-      int thickness = segs[7*l + 4];
-      thickness = thickness > 0 ? thickness:1;
-      // std::cout << thickness << "\n";
-      cv::Scalar color((rand() % 255), (rand() % 255), (rand() % 255));
-      cv::line(show_image, cv::Point2f(x1, y1), cv::Point2f(x2, y2), color, thickness);
-    }
+    // for (int l = 0; l < n; ++l) {
+    //   double x1 = segs[7*l];
+    //   double y1 = segs[7*l + 1];
+    //   double x2 = segs[7*l + 2];
+    //   double y2 = segs[7*l + 3];
+    //   octave_lines.push_back(cv::Vec4f(x1, y1, x2, y2));
+    //   int thickness = segs[7*l + 4];
+    //   thickness = thickness > 0 ? thickness:1;
+    //   // std::cout << thickness << "\n";
+    //   cv::Scalar color((rand() % 255), (rand() % 255), (rand() % 255));
+    //   cv::line(show_image, cv::Point2f(x1, y1), cv::Point2f(x2, y2), color, thickness);
+    // }
     // cv::imshow("line_cus", show_image);
     // cv::waitKey();
     lines_lsd.push_back( octave_lines );
