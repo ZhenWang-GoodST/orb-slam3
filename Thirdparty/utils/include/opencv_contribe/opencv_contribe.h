@@ -1,11 +1,40 @@
 #ifndef OPENCV_CONTRIBE_CUSTOMM
 #define OPENCV_CONTRIBE_CUSTOMM
+#include "opencv2/opencv.hpp"
 #include "opencv2/core.hpp"
 #include "opencv2/imgproc.hpp"
 // #include "opencv2/core/private.hpp"
 
 namespace cv {
 namespace cv_contribe {
+
+template <typename T>
+bool findXIntersection(const double x, const T& seg_a, const T& seg_b, T* pt) {
+    if ((seg_a.x - x) * (seg_b.x - x) > 0) return false;
+    if (std::abs(seg_a.x - seg_b.x) < 1e-4) return false;//horizontal
+    double scale = (x - seg_a.x) / (seg_b.x - seg_a.x);
+    pt->x = x;
+    if(std::abs(seg_a.y - seg_b.y)<1e-4){
+        pt->y = seg_a.y;
+    }else{
+        pt->y = seg_a.y + scale * (seg_b.y - seg_a.y);
+    }
+    return true;
+}
+
+template <typename T>
+bool findYIntersection(const double y, const T& seg_a, const T& seg_b, T* pt) {
+    if ((seg_a.y - y) * (seg_b.y - y) > 0) return false;
+    if (std::abs(seg_a.y - seg_b.y) < 1e-4) return false;//horizontal
+    double scale = (y - seg_a.y) / (seg_b.y - seg_a.y);
+    pt->y = y;
+    if(std::abs(seg_a.x - seg_b.x)<1e-4){
+        pt->x = seg_a.x;
+    }else{
+        pt->x = seg_a.x + scale * (seg_b.x - seg_a.x);
+    }
+    return true;
+}
 
 // //! Variants of Line Segment %Detector
 // //! @ingroup imgproc_feature
@@ -90,7 +119,7 @@ is chosen.
 CV_EXPORTS_W Ptr<LineSegmentDetector> createLineSegmentDetector(
     int _refine = LSD_REFINE_STD, double _scale = 0.8,
     double _sigma_scale = 0.6, double _quant = 2.0, double _ang_th = 22.5,
-    double _log_eps = 0, double _density_th = 0.7, int _n_bins = 1024);
+    double _log_eps = 0, double _density_th = 0.7, int _n_bins = 1024, double _length_ratio = 0.125);
 
 //! @} imgproc_feature
 

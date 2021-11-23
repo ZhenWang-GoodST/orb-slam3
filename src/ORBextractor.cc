@@ -406,7 +406,8 @@ namespace ORB_SLAM3
                     7,0, 12,-2/*mean (0.127002), correlation (0.537452)*/,
                     -1,-6, 0,-11/*mean (0.127148), correlation (0.547401)*/
             };
-
+#pragma GCC push_options
+#pragma GCC optimize (0)
     ORBextractor::ORBextractor(int _nfeatures, float _scaleFactor, int _nlevels,
                                int _iniThFAST, int _minThFAST):
             nfeatures(_nfeatures), scaleFactor(_scaleFactor), nlevels(_nlevels),
@@ -468,7 +469,7 @@ namespace ORB_SLAM3
             ++v0;
         }
     }
-
+#pragma GCC pop_options
     static void computeOrientation(const Mat& image, vector<KeyPoint>& keypoints, const vector<int>& umax)
     {
         for (vector<KeyPoint>::iterator keypoint = keypoints.begin(),

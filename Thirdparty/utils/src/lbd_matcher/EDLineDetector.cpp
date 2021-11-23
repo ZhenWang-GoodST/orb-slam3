@@ -169,6 +169,16 @@ int EDLineDetector::EdgeDrawing(cv::Mat &image, EdgeChains &edgeChains, bool smo
 	gImg_ = gImg_/4;
 	gImgWO_ = sumDxDy/4;
 	cv::compare(dxABS_m, dyABS_m, dirImg_, cv::CMP_LT);
+	// dxABS_m.convertTo(dxABS_m, CV_8U);
+	// cv::threshold(dxABS_m, dxABS_m, 15, 255, cv::ThresholdTypes::THRESH_BINARY);
+	// dyABS_m.convertTo(dyABS_m, CV_8U);
+	// cv::threshold(dyABS_m, dyABS_m, 15, 255, cv::ThresholdTypes::THRESH_BINARY);
+	// std::cout << dxABS_m.type() << "\n";
+	// // cv::cvtColor(dxABS_m, dxABS_m, cv::)
+	// cv::imshow("dxABS_m", dxABS_m);
+	// cv::imshow("dyABS_m", dyABS_m);
+	// cv::imshow("dirImg_", dirImg_);
+	// cv::waitKey();
 
 	t = ((double)cv::getTickCount() - t)/cv::getTickFrequency();
 	std::cout<<"FOR ABS: "<<t<<"s"<<std::endl;

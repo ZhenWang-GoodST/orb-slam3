@@ -48,6 +48,7 @@ int main(int argc, char **argv)
     std::string conf_file = "/home/" + USER + "VO-LOAM/github/orb-slam3/conf/conf.json";
     std::ifstream in(conf_file);
     in >> cfg;
+    line_cfg = cfg;
     in.close();
     cv::CommandLineParser parser(argc, argv,
         "{ help h usage ? |      | show this message }"

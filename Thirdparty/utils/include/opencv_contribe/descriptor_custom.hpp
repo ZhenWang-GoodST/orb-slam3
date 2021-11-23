@@ -62,7 +62,8 @@
 #include <opencv2/highgui.hpp>
 #include "opencv2/core.hpp"
 #include <opencv2/line_descriptor/descriptor.hpp>
-
+#include <nlohmann/json.hpp>
+extern nlohmann::json line_cfg;
 /* define data types */
 typedef uint64_t UINT64;
 typedef uint32_t UINT32;

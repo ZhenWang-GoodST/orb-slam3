@@ -5,8 +5,9 @@
 
 #include "EDLineDetector.h"
 #include "LineStructure.h"
+#include "descriptor_custom.hpp"
 
-
+using cv::line_descriptor_custom::LSDDetectorC;
 #include <map>
 struct OctaveLine{
   unsigned int octaveCount;//the octave which this line is detected
@@ -28,14 +29,16 @@ public:
 		NNDR=1//nearest/next ratio
 	};
   /*This function is used to detect lines from multi-scale images.*/
-	int OctaveKeyLines(cv::Mat & image, ScaleLines &keyLines);
-  int GetLineDescriptor(cv::Mat & image,
-  		ScaleLines &keyLines);
+	int OctaveKeyLines(const cv::Mat & image_, ScaleLines &keyLines);
+	int OctaveKeyLines(const cv::Mat & image_, ScaleLines &keyLines, LSDDetectorC::LSDOptions opts);
+  int GetLineDescriptor(const cv::Mat & image,
+  		ScaleLines &keyLines, LSDDetectorC::LSDOptions opts = LSDDetectorC::LSDOptions(), int lineMode = 0);
   int MatchLineByDescriptor(ScaleLines &keyLinesLeft, ScaleLines &keyLinesRight,
   		std::vector<short> &matchLeft, std::vector<short> &matchRight,
   		int criteria=NNDR);
   float LowestThreshold;//global threshold for line descriptor distance, default is 0.35
   float NNDRThreshold;//the NNDR threshold for line descriptor distance, default is 0.6
+	unsigned int  numOfOctave_;//the number of image octave
 private:
 
 	void sample(float *igray,float *ogray, float factor, int width, int height)
@@ -70,7 +73,6 @@ private:
 	std::vector<EDLineDetector*> edLineVec_;
 
 	int ksize_; //the size of Gaussian kernel: ksize X ksize, default value is 5.
-	unsigned int  numOfOctave_;//the number of image octave
 	unsigned int  numOfBand_;//the number of band used to compute line descriptor
 	unsigned int  widthOfBand_;//the width of band;
 	std::vector<float> gaussCoefL_;//the local gaussian coefficient apply to the orthogonal line direction within each band;

@@ -71,7 +71,7 @@ const double DEG_TO_RADS = CV_PI / 180;
 
 struct edge
 {
-    cv::Point p;
+    cv::Point2d p;
     bool taken;
 };
 
@@ -164,7 +164,7 @@ namespace cv_contribe{
 class LineSegmentDetectorImpl : public LineSegmentDetector
 {
 public:
-
+    cv::Mat mask;
 /**
  * Create a LineSegmentDetectorImpl object. Specifying scale, number of subdivisions for the image, should the lines be refined and other constants as follows:
  *
@@ -183,7 +183,7 @@ public:
  */
     LineSegmentDetectorImpl(int _refine = LSD_REFINE_STD, double _scale = 0.8,
         double _sigma_scale = 0.6, double _quant = 2.0, double _ang_th = 22.5,
-        double _log_eps = 0, double _density_th = 0.7, int _n_bins = 1024);
+        double _log_eps = 0, double _density_th = 0.7, int _n_bins = 1024, double line_ratio = 0.125);
 
 /**
  * Detect lines in the input image.
@@ -251,7 +251,15 @@ private:
     const double ANG_TH;
     const double LOG_EPS;
     const double DENSITY_TH;
+    const double line_ratio;
+    double line_length;
     const int N_BINS;
+    int thresh = 5;
+    uchar *mask_ptr; 
+    const uchar UNMET = 255;
+    const uchar EDGE = 0;
+    const uchar VERTEX = 128;
+    int border = 15;// 等于ORB特征点patch size
 
     struct RegionPoint {
         int x;
@@ -279,7 +287,19 @@ private:
         double dx,dy;             // (dx,dy) is vector oriented as the line segment
         double prec;              // tolerance angle
         double p;                 // probability of a point with angle within 'prec'
+        void draw(cv::Mat im, cv::Scalar color = cv::Scalar(0, 255, 0), bool setw = false) {
+            for (size_t i = 0; i < alligned_pts.size(); i++) {
+                im.at<uchar>(alligned_pts[i].y * im.cols + alligned_pts[i].x) = 255;
+            }
+            // cv::line(im, cv::Point2f(x1, y1), cv::Point2f(x2, y2), color, setw ? 2:width);
+        }
+        std::vector<cv::Point> alligned_pts = {};
+        std::vector<cv::Point> unalligned_pts = {};
     };
+
+    void generate_mask();
+
+    void mask_reion_grow(const rect &rec);
 
     LineSegmentDetectorImpl& operator= (const LineSegmentDetectorImpl&); // to quiet MSVC
 
@@ -368,7 +388,7 @@ private:
  * Calculates the number of correctly aligned points within the rectangle.
  * @return      The new NFA value.
  */
-    double rect_nfa(const rect& rec) const;
+    double rect_nfa(rect& rec) const;
 
 /**
  * Computes the NFA values based on the total number of points, points that agree.
@@ -388,19 +408,19 @@ private:
 
 CV_EXPORTS Ptr<LineSegmentDetector> createLineSegmentDetector(
         int _refine, double _scale, double _sigma_scale, double _quant, double _ang_th,
-        double _log_eps, double _density_th, int _n_bins)
+        double _log_eps, double _density_th, int _n_bins, double _line_ratio)
 {
     return makePtr<LineSegmentDetectorImpl>(
             _refine, _scale, _sigma_scale, _quant, _ang_th,
-            _log_eps, _density_th, _n_bins);
+            _log_eps, _density_th, _n_bins, _line_ratio);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
 
 LineSegmentDetectorImpl::LineSegmentDetectorImpl(int _refine, double _scale, double _sigma_scale, double _quant,
-        double _ang_th, double _log_eps, double _density_th, int _n_bins)
+        double _ang_th, double _log_eps, double _density_th, int _n_bins, double _line_ratio)
         :SCALE(_scale), doRefine(_refine), SIGMA_SCALE(_sigma_scale), QUANT(_quant),
-        ANG_TH(_ang_th), LOG_EPS(_log_eps), DENSITY_TH(_density_th), N_BINS(_n_bins)
+        ANG_TH(_ang_th), LOG_EPS(_log_eps), DENSITY_TH(_density_th), N_BINS(_n_bins), line_ratio(_line_ratio)
 {
     CV_Assert(_scale > 0 && _sigma_scale > 0 && _quant >= 0 &&
               _ang_th > 0 && _ang_th < 180 && _density_th >= 0 && _density_th < 1 &&
@@ -413,6 +433,8 @@ void LineSegmentDetectorImpl::detect(InputArray _image, OutputArray _lines,
     // CV_INSTRUMENT_REGION()
 
     image = _image.getMat();
+    line_length = line_ratio * std::min(image.cols, image.rows) / SCALE;
+    line_length *= line_length;
     CV_Assert(!image.empty() && image.type() == CV_8UC1);
 
     std::vector<Vec4f> lines;
@@ -431,7 +453,9 @@ void LineSegmentDetectorImpl::detect(InputArray _image, OutputArray _lines,
     if(p_needed) Mat(p).copyTo(_prec);
     if(n_needed) Mat(n).copyTo(_nfa);
 }
-
+#pragma GCC pop_options
+#pragma GCC push_options
+#pragma GCC optimize (0)
 void LineSegmentDetectorImpl::flsd(std::vector<Vec4f>& lines,
     std::vector<double>& widths, std::vector<double>& precisions,
     std::vector<double>& nfas)
@@ -440,7 +464,7 @@ void LineSegmentDetectorImpl::flsd(std::vector<Vec4f>& lines,
     const double prec = CV_PI * ANG_TH / 180;
     const double p = ANG_TH / 180;
     const double rho = QUANT / sin(prec);    // gradient magnitude threshold
-
+    cv::Rect inner_rect(border, border, image.cols - 2 * border, image.rows - 2 * border);
     if(SCALE != 1)
     {
         Mat gaussian_img;
@@ -448,17 +472,19 @@ void LineSegmentDetectorImpl::flsd(std::vector<Vec4f>& lines,
         const double sprec = 3;
         const unsigned int h =  (unsigned int)(ceil(sigma * sqrt(2 * sprec * log(10.0))));
         Size ksize(1 + 2 * h, 1 + 2 * h); // kernel size
-        GaussianBlur(image, gaussian_img, ksize, sigma);
+        GaussianBlur(image(inner_rect), gaussian_img, ksize, sigma);
         // Scale image to needed size
         resize(gaussian_img, scaled_image, Size(), SCALE, SCALE);
         ll_angle(rho, N_BINS);
     }
     else
     {
-        scaled_image = image;
+        scaled_image = image(inner_rect);
         ll_angle(rho, N_BINS);
     }
-
+    std::cout << scaled_image.size() << "\n";
+    mask = cv::Mat(image.size(), CV_8U);
+    mask.setTo(UNMET);
     LOG_NT = 5 * (log10(double(img_width)) + log10(double(img_height))) / 2 + log10(11.0);
     const size_t min_reg_size = size_t(-LOG_NT/log10(p)); // minimal number of points in region that can give a meaningful event
 
@@ -466,7 +492,8 @@ void LineSegmentDetectorImpl::flsd(std::vector<Vec4f>& lines,
     // Mat region = Mat::zeros(scaled_image.size(), CV_8UC1);
     used = Mat_<uchar>::zeros(scaled_image.size()); // zeros = NOTUSED
     std::vector<RegionPoint> reg;
-
+    cv::Mat ori_image, show_image;
+    scaled_image.convertTo(ori_image, CV_8UC3);
     // Search for line segments
     for(size_t i = 0, list_size = list.size(); i < list_size; ++i)
     {
@@ -482,7 +509,9 @@ void LineSegmentDetectorImpl::flsd(std::vector<Vec4f>& lines,
             // Construct rectangular approximation for the region
             rect rec;
             region2rect(reg, reg_angle, prec, p, rec);
-
+            show_image = ori_image.clone();
+            // rec.draw(show_image);
+            // cv::imshow("show_image", show_image);
             double log_nfa = -1;
             if(doRefine > LSD_REFINE_NONE)
             {
@@ -502,15 +531,22 @@ void LineSegmentDetectorImpl::flsd(std::vector<Vec4f>& lines,
             rec.x1 += 0.5; rec.y1 += 0.5;
             rec.x2 += 0.5; rec.y2 += 0.5;
 
+            //Store the relevant data
+            double _dx = rec.x1 - rec.x2;
+            double _dy = rec.y1 - rec.y2;
+            if ((_dx * _dx + _dy * _dy < line_length)) continue;
+            double log_nfa_new = rect_nfa(rec);
             // scale the result values if a sub-sampling was performed
             if(SCALE != 1)
             {
-                rec.x1 /= SCALE; rec.y1 /= SCALE;
-                rec.x2 /= SCALE; rec.y2 /= SCALE;
+                rec.x1 = rec.x1 / SCALE + border; rec.y1 = rec.y1 / SCALE + border;
+                rec.x2 = rec.x2 / SCALE + border; rec.y2 = rec.y2 / SCALE + border;
                 rec.width /= SCALE;
             }
-
-            //Store the relevant data
+            rec.draw(show_image);
+            cv::imshow("show_image", show_image);
+            mask_reion_grow(rec);
+            // cv::waitKey();
             lines.push_back(Vec4f(float(rec.x1), float(rec.y1), float(rec.x2), float(rec.y2)));
             if(w_needed) widths.push_back(rec.width);
             if(p_needed) precisions.push_back(rec.p);
@@ -518,7 +554,7 @@ void LineSegmentDetectorImpl::flsd(std::vector<Vec4f>& lines,
         }
     }
 }
-
+#pragma GCC pop_options
 void LineSegmentDetectorImpl::ll_angle(const double& threshold,
                                    const unsigned int& n_bins)
 {
@@ -853,7 +889,9 @@ bool LineSegmentDetectorImpl::reduce_region_radius(std::vector<RegionPoint>& reg
 
     return true;
 }
-
+#pragma GCC pop_options
+#pragma GCC push_options
+#pragma GCC optimize (0)
 double LineSegmentDetectorImpl::rect_improve(rect& rec) const
 {
     double delta = 0.5;
@@ -958,7 +996,10 @@ double LineSegmentDetectorImpl::rect_improve(rect& rec) const
     return log_nfa;
 }
 
-double LineSegmentDetectorImpl::rect_nfa(const rect& rec) const
+#pragma GCC pop_options
+#pragma GCC push_options
+#pragma GCC optimize (0)
+double LineSegmentDetectorImpl::rect_nfa(rect& rec) const
 {
     int total_pts = 0, alg_pts = 0;
     double half_width = rec.width / 2.0;
@@ -969,11 +1010,19 @@ double LineSegmentDetectorImpl::rect_nfa(const rect& rec) const
     edge* min_y = &ordered_x[0];
     edge* max_y = &ordered_x[0]; // Will be used for loop range
 
-    ordered_x[0].p.x = int(rec.x1 - dyhw); ordered_x[0].p.y = int(rec.y1 + dxhw); ordered_x[0].taken = false;
-    ordered_x[1].p.x = int(rec.x2 - dyhw); ordered_x[1].p.y = int(rec.y2 + dxhw); ordered_x[1].taken = false;
-    ordered_x[2].p.x = int(rec.x2 + dyhw); ordered_x[2].p.y = int(rec.y2 - dxhw); ordered_x[2].taken = false;
-    ordered_x[3].p.x = int(rec.x1 + dyhw); ordered_x[3].p.y = int(rec.y1 - dxhw); ordered_x[3].taken = false;
-
+    ordered_x[0].p.x = rec.x1 - dyhw; ordered_x[0].p.y = rec.y1 + dxhw; ordered_x[0].taken = false;
+    ordered_x[1].p.x = rec.x2 - dyhw; ordered_x[1].p.y = rec.y2 + dxhw; ordered_x[1].taken = false;
+    ordered_x[2].p.x = rec.x2 + dyhw; ordered_x[2].p.y = rec.y2 - dxhw; ordered_x[2].taken = false;
+    ordered_x[3].p.x = rec.x1 + dyhw; ordered_x[3].p.y = rec.y1 - dxhw; ordered_x[3].taken = false;
+    // cv::Mat mask_ = mask.clone();
+    // mask_.setTo(0);
+    // for (int i = 0; i < 4; ++i) {
+    //     cv::line(mask_, ordered_x[i].p, ordered_x[(i + 1) % 4].p, 255);
+    // }
+    // cv::circle(mask_, cv::Point(rec.x1, rec.y1), 5, 255);
+    // cv::circle(mask_, cv::Point(rec.x2, rec.y2), 5, 255);
+    // cv::imshow("mask", mask_);
+    // cv::waitKey();
     std::sort(ordered_x, ordered_x + 4, AsmallerB_XoverY);
 
     // Find min y. And mark as taken. find max y.
@@ -1040,26 +1089,51 @@ double LineSegmentDetectorImpl::rect_nfa(const rect& rec) const
 
     double flstep = (min_y->p.y != leftmost->p.y) ?
                     (min_y->p.x - leftmost->p.x) / (min_y->p.y - leftmost->p.y) : 0; //first left step
-    double slstep = (leftmost->p.y != tailp->p.x) ?
-                    (leftmost->p.x - tailp->p.x) / (leftmost->p.y - tailp->p.x) : 0; //second left step
+    double slstep = (leftmost->p.y != tailp->p.y) ?
+                    (leftmost->p.x - tailp->p.x) / (leftmost->p.y - tailp->p.y) : 0; //second left step
 
     double frstep = (min_y->p.y != rightmost->p.y) ?
                     (min_y->p.x - rightmost->p.x) / (min_y->p.y - rightmost->p.y) : 0; //first right step
-    double srstep = (rightmost->p.y != tailp->p.x) ?
-                    (rightmost->p.x - tailp->p.x) / (rightmost->p.y - tailp->p.x) : 0; //second right step
+    double srstep = (rightmost->p.y != tailp->p.y) ?
+                    (rightmost->p.x - tailp->p.x) / (rightmost->p.y - tailp->p.y) : 0; //second right step
 
     double lstep = flstep, rstep = frstep;
 
     double left_x = min_y->p.x, right_x = min_y->p.x;
 
     // Loop around all points in the region and count those that are aligned.
-    int min_iter = min_y->p.y;
-    int max_iter = max_y->p.y;
-    for(int y = min_iter; y <= max_iter; ++y)
-    {
-        if (y < 0 || y >= img_height) continue;
-
-        for(int x = int(left_x); x <= int(right_x); ++x)
+    int min_iter = min_y->p.y > 0 ? min_y->p.y : 0;
+    int max_iter = int(max_y->p.y) < img_height ? max_y->p.y : img_height - 1;
+    rec.alligned_pts.clear();
+    rec.unalligned_pts.clear();
+    rec.alligned_pts.reserve(1000);
+    rec.unalligned_pts.reserve(1000);
+    double current_x;
+    //       y              xstart, xend or
+    //       x              ystart, yend
+    std::unordered_map<int, std::pair<int, int>> rect_it;
+    current_x = min_y->p.x;
+    for (double y = min_y->p.y; y < leftmost->p.y; ++y) {
+        rect_it[y].first = current_x;
+        current_x += flstep;
+    }
+    current_x = leftmost->p.x;
+    for (double y = leftmost->p.y; int(y) <= max_iter; ++y) {
+        rect_it[y].first = current_x;
+        current_x += slstep;
+    }
+    current_x = min_y->p.x;
+    for (int y = min_y->p.y; y < rightmost->p.y; ++y) {
+        rect_it[y].second = current_x;
+        current_x += frstep;
+    }
+    current_x = rightmost->p.x;
+    for (int y = rightmost->p.y; int(y) <= max_iter; ++y) {
+        rect_it[y].second = current_x;
+        current_x += srstep;
+    }
+    for(int y = min_iter; y <= max_iter; ++y) {
+        for(int x = rect_it[y].first; x <= rect_it[y].second; ++x)
         {
             if (x < 0 || x >= img_width) continue;
 
@@ -1067,19 +1141,19 @@ double LineSegmentDetectorImpl::rect_nfa(const rect& rec) const
             if(isAligned(x, y, rec.theta, rec.prec))
             {
                 ++alg_pts;
+                rec.alligned_pts.push_back(cv::Point(x, y));
+            } else {
+                rec.unalligned_pts.push_back(cv::Point(x, y));
             }
+            // mask_.at<uchar>(y, x) = 128;
         }
-
-        if(y >= leftmost->p.y) { lstep = slstep; }
-        if(y >= rightmost->p.y) { rstep = srstep; }
-
-        left_x += lstep;
-        right_x += rstep;
     }
-
+    // cv::imshow("mask", mask_);
+    // cv::waitKey();
     return nfa(total_pts, alg_pts, rec.p);
 }
 
+#pragma GCC pop_options
 double LineSegmentDetectorImpl::nfa(const int& n, const int& k, const double& p) const
 {
     // Trivial cases
@@ -1237,5 +1311,65 @@ int LineSegmentDetectorImpl::compareSegments(const Size& size, InputArray lines1
 
     return N;
 }
+#pragma GCC push_options
+#pragma GCC optimize (0)
+void LineSegmentDetectorImpl::mask_reion_grow(const rect &rec) {
+    
+    std::vector<cv::Point> boundary = rec.alligned_pts;
+    std::vector<cv::Point> new_boundary = {};
+    // boundary.insert(boundary.end(), rec.unalligned_pts.begin(), rec.unalligned_pts.end());
+
+    // cv::Point pt;
+    int width = image.cols;
+    int height = image.rows;
+    // while(!adjacent.empty()) {
+    // cv::Mat vis_map = cv::Mat::zeros(image.size(),CV_8U);
+    // mask.setTo(0);
+    mask_ptr = mask.data; 
+    for (int i = 0; i < boundary.size(); ++i) {
+        boundary[i] /= SCALE + border;
+        if (boundary[i].x < 1 || boundary[i].x >= width - 1 ||
+            boundary[i].y < 1 || boundary[i].y >= height - 1) {
+            boundary.erase(boundary.begin() + i);
+            i -= 1;
+            continue;
+        }
+        if (mask_ptr[boundary[i].y * width + boundary[i].x] == VERTEX) continue;
+        mask_ptr[boundary[i].y * width + boundary[i].x] = EDGE;
+        // cv::circle(mask, cv::Point2f(boundary[i].x, boundary[i].y), 1, EDGE, -1);
+    }
+    std::cout << rec.x1 << "\n";
+    cv::circle(mask, cv::Point2f(rec.x1, rec.y1), thresh * 3, VERTEX, -1);
+    cv::circle(mask, cv::Point2f(rec.x2, rec.y2), thresh * 3, VERTEX, -1);
+    //给图像加上外边框，向外沿拓1，减少越界判断
+    for (int itration = 0; itration < 0; ++itration) {
+        new_boundary.clear();
+        for (int i = 0; i < boundary.size(); ++i) {
+            const cv::Point &pt = boundary[i];
+            int r = pt.y;
+            int c = pt.x;
+            int id = r * width + c;
+            for(int j = -1; j < 2; ++j) {
+                for(int k = -1; k < 2; ++k) {
+                    r = pt.y + k;
+                    c = pt.x + j;
+                    int id = r * width + c;
+                    // if(c < 0 || c > width || r < 0 || r > height) continue;
+                    if(mask_ptr[id] != UNMET) continue;
+                    new_boundary.emplace_back(Point(c, r));
+                    mask_ptr[id] = EDGE;
+                }
+            }
+        }
+        boundary.clear();
+        boundary = std::move(new_boundary);
+    }
+    // cv::imshow("mask", mask);
+    // cv::waitKey();
+    // boundary.clear();
+    // boundary.push_back(cv::Point())
+}
+#pragma GCC pop_options
+
 }
 } // namespace cv

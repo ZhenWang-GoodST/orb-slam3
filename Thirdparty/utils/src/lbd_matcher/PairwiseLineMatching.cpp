@@ -78,6 +78,44 @@ void PairwiseLineMatching::LineMatching(ScaleLines &linesInLeft, ScaleLines &lin
 	MatchingResultFromPrincipalEigenvector_(linesInLeft, linesInRight, matchResult);
 }
 
+void PairwiseLineMatching::drawMatch(const cv::Mat &left, const ScaleLines &left_lines, 
+        const cv::Mat &right, const ScaleLines &right_lines, 
+        const std::vector<unsigned int> &matchResult, cv::Mat &show_image) {
+	cv::Point p1, p2;
+    int lineIDLeft, lineIDRight;
+    int lowest1 = 0, highest1 = 255;
+    int range1 = (highest1 - lowest1) + 1;
+	show_image = cv::Mat::zeros(cv::Size(left.cols + right.cols, left.rows), left.type());
+	cv::Rect rect1(cv::Point2f(0, 0), left.size());
+	cv::Rect rect2(cv::Point2f(left.cols, 0), left.size());
+	left.copyTo(show_image(rect1));
+	right.copyTo(show_image(rect2));
+	// cv::cvtColor(show_image, show_image, cv::COLOR_GRAY2BGR);
+    std::vector<unsigned int> r1(matchResult.size() / 2), g1(matchResult.size() / 2), b1(matchResult.size() / 2); //the color of lines
+	for (unsigned int pair = 0; pair < matchResult.size() / 2; pair++)
+    {
+        r1[pair] = lowest1 + int(rand() % range1);
+        g1[pair] = lowest1 + int(rand() % range1);
+        b1[pair] = 255 - r1[pair];
+        lineIDLeft = matchResult[2 * pair];
+        lineIDRight = matchResult[2 * pair + 1];
+        p1 = cv::Point(int(left_lines[lineIDLeft][0].startPointX), int(left_lines[lineIDLeft][0].startPointY));
+        p2 = cv::Point(int(left_lines[lineIDLeft][0].endPointX), int(left_lines[lineIDLeft][0].endPointY));
+        cv::line(show_image, p1, p2, CV_RGB(r1[pair], g1[pair], b1[pair]), 4, cv::LINE_AA, 0);
+        p1 = cv::Point(int(right_lines[lineIDRight][0].startPointX + left.cols), int(right_lines[lineIDRight][0].startPointY));
+        p2 = cv::Point(int(right_lines[lineIDRight][0].endPointX + left.cols), int(right_lines[lineIDRight][0].endPointY));
+        cv::line(show_image, p1, p2, CV_RGB(r1[pair], g1[pair], b1[pair]), 4, cv::LINE_AA, 0);
+    }
+	for (unsigned int pair = 0; pair < matchResult.size() / 2; pair++)
+    {
+        lineIDLeft = matchResult[2 * pair];
+        lineIDRight = matchResult[2 * pair + 1];
+        p1 = cv::Point(int(left_lines[lineIDLeft][0].startPointX), int(left_lines[lineIDLeft][0].startPointY));
+        p2 = cv::Point(int(right_lines[lineIDRight][0].startPointX + left.cols), int(right_lines[lineIDRight][0].startPointY));
+        cv::line(show_image, p1, p2, CV_RGB(r1[pair], g1[pair], b1[pair]), 1, cv::LINE_AA, 0);
+    }
+}
+
 double PairwiseLineMatching::GlobalRotationOfImagePair_(ScaleLines &linesInLeft, ScaleLines &linesInRight)
 {
 	double TwoPI = 2 * M_PI;
@@ -207,8 +245,8 @@ void PairwiseLineMatching::BuildAdjacencyMatrix_(ScaleLines &linesInLeft, ScaleL
 	 *their direction, gray value  and gradient magnitude.
      */
 	nodesList_.clear();
-	double angleDif;
-	double lengthDif;
+	volatile double angleDif;
+	volatile double lengthDif;
 
 	unsigned int dimOfDes = linesInLeft[0][0].descriptor.size();
 	double desDisMat[numLineLeft][numLineRight]; //store the descriptor distance of lines in left and right images.

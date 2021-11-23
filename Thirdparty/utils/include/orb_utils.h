@@ -21,6 +21,7 @@
 #include "lbd_matcher/LineDescriptor.h"
 #include "lbd_matcher/LineStructure.h"
 #include "lbd_matcher/PairwiseLineMatching.h"
+#include "std_time.h"
 
 typedef tergeo::visualodometry::Matcher TMatcher;
 typedef tergeo::visualodometry::Match TMatch;

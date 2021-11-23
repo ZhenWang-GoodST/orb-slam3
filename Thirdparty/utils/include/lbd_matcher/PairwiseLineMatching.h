@@ -39,6 +39,9 @@ public:
     PairwiseLineMatching(){};
     void LineMatching(ScaleLines &linesInLeft,ScaleLines &linesInRight, std::vector<unsigned int> &matchResult);
     ~PairwiseLineMatching(){};
+    void drawMatch(const cv::Mat &left, const ScaleLines &left_lines, 
+        const cv::Mat &right, const ScaleLines &right_lines, 
+        const std::vector<unsigned int> &matchResult, cv::Mat &show_image);
 
 private:
     /* Compute the approximate global rotation angle between image pair(i.e. the left and right images).
@@ -59,7 +62,7 @@ private:
   * and whose weights on edges measure the agreements between pairs of potential assignments. That is where the pairwise
   * constraints are applied(c.f. A spectral technique for correspondence problems using pairwise constraints, M.Leordeanu).
   */
-    void BuildAdjacencyMatrix_(ScaleLines &linesInLeft,ScaleLines &linesInRight);
+    void BuildAdjacencyMatrix_(ScaleLines &linesInLeft,ScaleLines &linesInRight) __attribute__ ((optimize(0))) ;
     /* Get the final matching from the principal eigenvector.
     */
     void MatchingResultFromPrincipalEigenvector_(ScaleLines &linesInLeft,ScaleLines &linesInRight,

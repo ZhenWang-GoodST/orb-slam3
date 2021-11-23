@@ -2365,11 +2365,14 @@ void Tracking::MonocularInitialization()
         }
         
         // Match Line
-        cv::Ptr<cv::line_descriptor::BinaryDescriptorMatcher> bdm = cv::line_descriptor::BinaryDescriptorMatcher::createBinaryDescriptorMatcher();
+        // cv::Ptr<cv::line_descriptor::BinaryDescriptorMatcher> bdm = cv::line_descriptor::BinaryDescriptorMatcher::createBinaryDescriptorMatcher();
         std::vector<cv::DMatch> matches;
-        std::vector<std::vector<cv::DMatch>> knnmatches;
-        bdm->knnMatch(mCurrentFrame.lineDescriptor, mInitialFrame.lineDescriptor, knnmatches, 1, cv::Mat());
-        bdm->match(mCurrentFrame.lineDescriptor, mInitialFrame.lineDescriptor, matches, cv::Mat());
+        // std::vector<std::vector<cv::DMatch>> knnmatches;
+        // bdm->knnMatch(mCurrentFrame.lineDescriptor, mInitialFrame.lineDescriptor, knnmatches, 1, cv::Mat());
+        // bdm->match(mCurrentFrame.lineDescriptor, mInitialFrame.lineDescriptor, matches, cv::Mat());
+        PairwiseLineMatching linematch;
+        std::vector<unsigned int> matchResult;
+        linematch.LineMatching(mInitialFrame.scalelines, mCurrentFrame.scalelines, matchResult);
         cv::Mat match_line_image;
         cv::Scalar single_color(0, 0, 255), match_color(0, 255, 0);
         cv::Mat _left, _right;
@@ -2377,9 +2380,10 @@ void Tracking::MonocularInitialization()
         cv::cvtColor(mCurrentFrame.monoImage, _right, cv::COLOR_GRAY2BGR);
         std::vector<char> mask_line(matches.size(), 1);
         // cv::line_descriptor_custom::drawLineMatches(_left, mInitialFrame.mvKeyLines, _right, mCurrentFrame.mvKeyLines, knnmatches[0], match_line_image, match_color, single_color, mask_line);
-        cv::line_descriptor_custom::drawLineMatches(_left, mInitialFrame.mvKeyLines, _right, mCurrentFrame.mvKeyLines, matches, match_line_image, match_color, single_color, mask_line);
+        // cv::line_descriptor_custom::drawLineMatches(_left, mInitialFrame.mvKeyLines, _right, mCurrentFrame.mvKeyLines, matches, match_line_image, match_color, single_color, mask_line);
+        linematch.drawMatch(_left, mInitialFrame.scalelines, _right, mCurrentFrame.scalelines, matchResult, match_line_image);
         cv::imshow("line", match_line_image);
-        // cv::waitKey();
+        cv::waitKey();
         // for (int i = 0; i < matches.size(); ++i) {
         //     cv::Point2f left_s;
         //     left_s.x = mInitialFrame.mvKeyLines[matches[i].queryIdx].startPointX;
