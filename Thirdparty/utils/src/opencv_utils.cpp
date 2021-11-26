@@ -368,7 +368,11 @@ void drawMatchPts(
 
 void drawKeyPts(
     cv::Mat &image, const std::vector<cv::KeyPoint> &pts, int size, const  cv::Scalar color) {
+    bool psize = size < 0;
     for (int i = 0; i < pts.size(); ++i) {
+        if (psize) {
+            size = pts[i].size;
+        }
         cv::rectangle(image, cv::Rect(pts[i].pt.x - size, pts[i].pt.y - size, size * 2, size * 2), color);
         // cv::imshow("key", image);
         // cv::waitKey();

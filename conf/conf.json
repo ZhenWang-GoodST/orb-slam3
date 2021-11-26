@@ -1,8 +1,8 @@
 {
     "type": 1,
-    "root_path":"/home/wz/VO-LOAM/data/1004/2021-10-04-08-52-10",
+    "root_path": "VO-LOAM/data/1004/2021-10-04-08-52-10",
     "start_stamp": "1633308767.458915",
-    "yaml": "/home/wz/VO-LOAM/data/1004/2021-10-04-08-52-10/nondistor.yaml",
+    "yaml": "VO-LOAM/data/1004/2021-10-04-08-52-10/nondistor.yaml",
     "imagepath":"/media/tonglu/新加卷/data/opensource/MH_01_easy/MH_01_easy",
     "stamppath": "/home/tonglu/VO-LOAM/github/orb-slam3/Examples/Monocular/EuRoC_TimeStamps/MH01.txt",
     "vocabulary" : "/home/tonglu/VO-LOAM/github/orb-slam3/Vocabulary/ORBvoc.bin",

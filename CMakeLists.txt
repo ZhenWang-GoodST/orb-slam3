@@ -2,15 +2,18 @@ cmake_minimum_required(VERSION 2.8)
 project(ORB_SLAM3)
 add_definitions(-w)
 
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall   -O3")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall   -O3")
 IF(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE Release)
-  ENDIF()
+ELSE()
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall   -O0")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall   -O0")
+ENDIF()
 # add_definitions(-DDEBUG_ORB)
 
 MESSAGE("Build type: " ${CMAKE_BUILD_TYPE})
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall   -O0")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall   -O0")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -march=native")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native")
 
@@ -36,10 +39,10 @@ endif()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 
 LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
-# set(OpenCV_DIR "/home/tonglu/github/install/opencv3.2.0/share/OpenCV")
-set(OpenCV_DIR "/home/wz/github/install/opencv4.2.0/lib/cmake/opencv4")
+set(OpenCV_DIR "/home/tonglu/github/install/opencv3.2.0/share/OpenCV")
+# set(OpenCV_DIR "/home/wz/github/install/opencv4.2.0/lib/cmake/opencv4")
 # set(OpenCV_DIR "/home/wz/github/install/opencv3.2.0docker/share/OpenCV")
-find_package(OpenCV 4.2.0)
+find_package(OpenCV 3.2.0)
 if(NOT OpenCV_FOUND)
   find_package(OpenCV 3.0)
   if(NOT OpenCV_FOUND)
@@ -65,7 +68,7 @@ ${Pangolin_INCLUDE_DIRS}
 ${PROJECT_SOURCE_DIR}/Thirdparty/utils/include
 ${GLOG_INCLUDE_DIRS}
 )
-
+set(CMAKE_PREFIX_PATH /opt/ros/melodic)
 # set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 find_package(catkin REQUIRED COMPONENTS
   roscpp pcl_ros sensor_msgs

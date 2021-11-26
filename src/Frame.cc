@@ -341,7 +341,8 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
     if(mvKeys.empty())
         return;
 
-    UndistortKeyPoints();
+    // UndistortKeyPoints();
+    mvKeysUn = mvKeys;
     tergeo::visualodometry::drawKeyPts(monoShowImage, mvKeysUn, 5, cv::Scalar(0, 255, 0));
 
     // Set no stereo information

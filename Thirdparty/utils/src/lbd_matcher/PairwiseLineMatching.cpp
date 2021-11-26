@@ -15,8 +15,9 @@
 using namespace std;
 
 #define Inf 1e10 //Infinity
+#define ParallelCross2 sin(6.0 / 180 * M_PI) * sin(6.0 / 180 * M_PI) //sin(6)*sin(6)
 //the resolution scale of theta histogram, used when compute angle histogram of lines in the image
-#define ResolutionScale 20 //10 degree
+// #define ResolutionScale 20 //10 degree
 /*The following two thresholds are used to decide whether the estimated global rotation is acceptable.
  *Some image pairs don't have a stable global rotation angle, e.g. the image pair of the wide baseline
  *non planar scene. */
@@ -73,7 +74,10 @@ bool matSave(double **mat, int n, int m, const std::string &filename)
 void PairwiseLineMatching::LineMatching(ScaleLines &linesInLeft, ScaleLines &linesInRight, std::vector<unsigned int> &matchResult)
 {
 	//compute the global rotation angle of image pair;
-	globalRotationAngle_ = GlobalRotationOfImagePair_(linesInLeft, linesInRight);
+	std::array<double, dim> _angleHistLeft, _lengthLeft, _angleHistRight, _lengthRight;
+    calAngleAndLenHist(linesInLeft, _angleHistLeft, _lengthLeft);
+    calAngleAndLenHist(linesInRight, _angleHistRight, _lengthRight);
+	globalRotationAngle_ = GlobalRotationOfImagePair_(_angleHistLeft, _lengthLeft, _angleHistRight, _lengthRight);
     BuildAdjacencyMatrix_(linesInLeft, linesInRight);
 	MatchingResultFromPrincipalEigenvector_(linesInLeft, linesInRight, matchResult);
 }
@@ -116,48 +120,48 @@ void PairwiseLineMatching::drawMatch(const cv::Mat &left, const ScaleLines &left
     }
 }
 
-double PairwiseLineMatching::GlobalRotationOfImagePair_(ScaleLines &linesInLeft, ScaleLines &linesInRight)
+double PairwiseLineMatching::calAngleAndLenHist(
+	ScaleLines &lines, std::array<double, dim> &angleHist, std::array<double, dim> &lengthHist)
 {
 	double TwoPI = 2 * M_PI;
 	double rotationAngle = TwoPI;
 
 	//step 1: compute the angle histogram of lines in the left and right images
-	const unsigned int dim = 360 / ResolutionScale; //number of the bins of histogram
+	// const unsigned int dim = 360 / ResolutionScale; //number of the bins of histogram
 	unsigned int index;								//index in the histogram
 	double direction;
 	double scalar = 180 / (ResolutionScale * 3.1415927); //used when compute the index
 	double angleShift = (ResolutionScale * M_PI) / 360;  //make sure zero is the middle of the interval
 
-	std::array<double, dim> angleHistLeft;
-	std::array<double, dim> angleHistRight;
-	std::array<double, dim> lengthLeft; //lengthLeft[i] store the total line length of all the lines in the ith angle bin.
-	std::array<double, dim> lengthRight;
-	angleHistLeft.fill(0);
-	angleHistRight.fill(0);
-	lengthLeft.fill(0);
-	lengthRight.fill(0);
+	// std::array<double, dim> angleHistLeft;
+	// std::array<double, dim> angleHistRight;
+	// std::array<double, dim> lengthLeft; //lengthLeft[i] store the total line length of all the lines in the ith angle bin.
+	// std::array<double, dim> lengthRight;
+	angleHist.fill(0);
+	lengthHist.fill(0);
 
-	for (unsigned int linenum = 0; linenum < linesInLeft.size(); linenum++)
+	for (unsigned int linenum = 0; linenum < lines.size(); linenum++)
 	{
-		direction = linesInLeft[linenum][0].direction + M_PI + angleShift;
+		direction = lines[linenum][0].direction + M_PI + angleShift;
 		direction = direction < TwoPI ? direction : (direction - TwoPI);
 		index = floor(direction * scalar);
-		angleHistLeft[index]++;
-		lengthLeft[index] += linesInLeft[linenum][0].lineLength;
+		angleHist[index]++;
+		lengthHist[index] += lines[linenum][0].lineLength;
 	}
-	for (unsigned int linenum = 0; linenum < linesInRight.size(); linenum++)
-	{
-		direction = linesInRight[linenum][0].direction + M_PI + angleShift;
-		direction = direction < TwoPI ? direction : (direction - TwoPI);
-		index = floor(direction * scalar);
-		angleHistRight[index]++;
-		lengthRight[index] += linesInRight[linenum][0].lineLength;
-	}
-	arrayMultiRatio(angleHistLeft.data(), angleHistLeft.size(), (1 / getNormL2(angleHistLeft.data(), angleHistLeft.size())));
-	arrayMultiRatio(angleHistRight.data(), angleHistRight.size(), (1 / getNormL2(angleHistRight.data(), angleHistRight.size())));
-	arrayMultiRatio(lengthLeft.data(), lengthLeft.size(), (1 / getNormL2(lengthLeft.data(), lengthLeft.size())));
-	arrayMultiRatio(lengthRight.data(), lengthRight.size(), (1 / getNormL2(lengthRight.data(), lengthRight.size())));
+	arrayMultiRatio(angleHist.data(), angleHist.size(), (1 / getNormL2(angleHist.data(), angleHist.size())));
+	arrayMultiRatio(lengthHist.data(), lengthHist.size(), (1 / getNormL2(lengthHist.data(), lengthHist.size())));
+}
 
+double PairwiseLineMatching::GlobalRotationOfImagePair_(
+	std::array<double, dim> angleHistLeft, std::array<double, dim> lengthLeft,
+	std::array<double, dim> angleHistRight, std::array<double, dim> lengthRight)
+{
+	//  angleHistLeft.Save("histLeft.txt");
+	//  angleHistRight.Save("histRight.txt");
+	double TwoPI = 2 * M_PI;
+	double rotationAngle = TwoPI;
+    const unsigned int dim = 360 / ResolutionScale;
+	unsigned int index;								//index in the histogram
 	//  angleHistLeft.Save("histLeft.txt");
 	//  angleHistRight.Save("histRight.txt");
 
@@ -381,7 +385,7 @@ void PairwiseLineMatching::BuildAdjacencyMatrix_(ScaleLines &linesInLeft, ScaleL
 	double relativeAngleDif, gradientMagRatioDif, iRatioDif, pRatioDif;
 
 	double interSectionPointX, interSectionPointY;
-	double a1, a2, b1, b2, c1, c2; //line1: a1 x + b1 y + c1 =0; line2: a2 x + b2 y + c2=0
+	double a1, a2, b1, b2, c1, c2, l1, l2; //line1: a1 x + b1 y + c1 =0; line2: a2 x + b2 y + c2=0
 	double a1b2_a2b1;			   //a1b2-a2b1
 	double length1, length2, len;
 	double disX, disY;
@@ -432,9 +436,10 @@ void PairwiseLineMatching::BuildAdjacencyMatrix_(ScaleLines &linesInLeft, ScaleL
 				b2 = linesInLeft[idLeft2][0].startPointX - linesInLeft[idLeft2][0].endPointX;					//-disX
 				c2 = (0 - b2 * linesInLeft[idLeft2][0].startPointY) - a2 * linesInLeft[idLeft2][0].startPointX; //disX*sy - disY*sx
 				length2 = linesInLeft[idLeft2][0].lineLength;
-
+                l1 = a1 * a1 + b1 * b1;
+                l2 = a2 * a2 + b2 * b2;
 				a1b2_a2b1 = a1 * b2 - a2 * b1;
-				if (fabs(a1b2_a2b1) < 0.001)
+				if (a1b2_a2b1 * a1b2_a2b1 < ParallelCross2 * l1 * l2)//l1.cross(l2) < sin(6)
 				{ //two lines are almost parallel
 					iRatio1L = Inf;
 					iRatio2L = Inf;
@@ -494,9 +499,10 @@ void PairwiseLineMatching::BuildAdjacencyMatrix_(ScaleLines &linesInLeft, ScaleL
                 b2 = linesInRight[idRight2][0].startPointX - linesInRight[idRight2][0].endPointX;					//-disX
                 c2 = (0 - b2 * linesInRight[idRight2][0].startPointY) - a2 * linesInRight[idRight2][0].startPointX; //disX*sy - disY*sx
                 length2 = linesInRight[idRight2][0].lineLength;
-
+				l1 = a1 * a1 + b1 * b1;
+                l2 = a2 * a2 + b2 * b2;
                 a1b2_a2b1 = a1 * b2 - a2 * b1;
-                if (fabs(a1b2_a2b1) < 0.001)
+                if (a1b2_a2b1 * a1b2_a2b1 < ParallelCross2 * l1 * l2)
                 { //two lines are almost parallel
                     iRatio1R = Inf;
                     iRatio2R = Inf;

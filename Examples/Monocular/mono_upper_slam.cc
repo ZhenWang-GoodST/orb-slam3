@@ -45,7 +45,8 @@ int main(int argc, char **argv)
 
     // const int num_seq = (argc-3)/2;
     std::string USER = get_user();
-    std::string conf_file = "/home/" + USER + "VO-LOAM/github/orb-slam3/conf/conf.json";
+    std::string HOME = "/home/" + USER;
+    std::string conf_file = HOME + "VO-LOAM/github/orb-slam3/conf/conf.json";
     std::ifstream in(conf_file);
     in >> cfg;
     line_cfg = cfg;
@@ -69,9 +70,9 @@ int main(int argc, char **argv)
         yaml = argv[4];
     } else {
         type = cfg["type"];
-        root_path = cfg["root_path"];
+        root_path = HOME + std::string(cfg["root_path"]);
         start_stamp = cfg["start_stamp"];
-        yaml = cfg["yaml"];
+        yaml = HOME + std::string(cfg["yaml"]);
     }
     //intrinsic read
     winsize = cfg["winsize"];
@@ -171,7 +172,7 @@ int main(int argc, char **argv)
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     // readParameter<std::string>("vocabulary", vocabulary);
-    vocabulary = "/home/" + USER + "VO-LOAM/github/orb-slam3/Vocabulary/ORBvoc.bin";
+    vocabulary = HOME + "VO-LOAM/github/orb-slam3/Vocabulary/ORBvoc.bin";
     ORB_SLAM3::System SLAM(vocabulary,yaml,ORB_SLAM3::System::MONOCULAR, true);
 
     log_dir = root_path + "/log/camera" + std::to_string(type) + image_pro_map[debugmode] + std::to_string(winsize) + "/";

@@ -32,6 +32,8 @@ struct CompareS {
     {return lhs<rhs;}
 };
 typedef  std::multimap<double,unsigned int,CompareS> DISMAP;
+#define ResolutionScale 20 //10 degree
+const unsigned int dim = 360 / ResolutionScale; //number of the bins of histogram
 
 class PairwiseLineMatching
 {
@@ -42,7 +44,7 @@ public:
     void drawMatch(const cv::Mat &left, const ScaleLines &left_lines, 
         const cv::Mat &right, const ScaleLines &right_lines, 
         const std::vector<unsigned int> &matchResult, cv::Mat &show_image);
-
+    double calAngleAndLenHist(ScaleLines &linesInLeft,  std::array<double, dim> &angleHist, std::array<double, dim> &lengthHist);
 private:
     /* Compute the approximate global rotation angle between image pair(i.e. the left and right images).
    * As shown in Bin Fan's work "Robust line matching through line-point invariants", this approximate
@@ -57,7 +59,9 @@ private:
    * input:  detected lines in the left and right images
    * return: the global rotation angle
    */
-    double GlobalRotationOfImagePair_(ScaleLines &linesInLeft, ScaleLines &linesInRight);
+    double GlobalRotationOfImagePair_(
+        std::array<double, dim> angleHistLeft, std::array<double, dim> lengthLeft,
+        std::array<double, dim> angleHistRight, std::array<double, dim> lengthRight);
     /* Build the symmetric non-negative adjacency matrix M, whose nodes are the potential assignments a = (i_l, j_r)
   * and whose weights on edges measure the agreements between pairs of potential assignments. That is where the pairwise
   * constraints are applied(c.f. A spectral technique for correspondence problems using pairwise constraints, M.Leordeanu).
