@@ -1257,7 +1257,7 @@ void Matcher::initializeCoordinate() {
     // *pcl_cloud += *tmp_pcl_cloud;
     std::cout << _point_count << "\n";
     std::cout << ros_cloud.data.size() << "  cloud size\n";
-    pcl::toROSMsg(*tmp_pcl_cloud, ros_cloud);
+    // pcl::toROSMsg(*tmp_pcl_cloud, ros_cloud);
     // std::cout << cloud->size() << "\n";
     // ros_cloud = ros_cloud + tmp_ros_cloud;
     ros_cloud.header.frame_id = "map";
@@ -1403,7 +1403,7 @@ void Matcher::solveHomography() {
     // *pcl_cloud += *tmp_pcl_cloud;
     std::cout << _point_count << "\n";
     std::cout << ros_cloud.data.size() << "  cloud size\n";
-    pcl::toROSMsg(*tmp_pcl_cloud, ros_cloud);
+    // pcl::toROSMsg(*tmp_pcl_cloud, ros_cloud);
     // std::cout << cloud->size() << "\n";
     // ros_cloud = ros_cloud + tmp_ros_cloud;
     ros_cloud.header.frame_id = "map";
@@ -1523,7 +1523,7 @@ void Matcher::solvePnP() {
     std::cout << _point_count << "\n";
     std::cout << ros_cloud.data.size() << "  cloud size\n";
     // std::cout << tmp_pcl_cloud->points.size() << "\n";
-    pcl::toROSMsg(*tmp_pcl_cloud, ros_cloud);
+    // pcl::toROSMsg(*tmp_pcl_cloud, ros_cloud);
     ros_cloud.header.frame_id = "map";
     ros_cloud.header.stamp = ros::Time::now();
     std::cout << "------------\n";

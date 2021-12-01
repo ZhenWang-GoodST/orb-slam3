@@ -1,0 +1,25 @@
+version: '3.3'
+services:
+  orb-slam-service:
+    image: slam-orb:vscode-v0
+    container_name: slam-orb
+    privileged: true
+    restart: "no"
+    network_mode: "host"
+    stdin_open: true
+    tty: true
+    environment:
+      - "DISPLAY"
+      - QT_X11_NO_MITSHM=1
+    volumes:
+      - /home/wz:/home/wz
+    # deploy:
+    #   resources:
+    #      limits:
+    #         cpus: '2'
+    #         memory: 4G
+    #      reservations:
+    #         cpus: '0.5'
+    #         memory: 200M
+    command: ["sh"]
+    # user: wz

@@ -39,10 +39,10 @@ endif()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 
 LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
-set(OpenCV_DIR "/home/tonglu/github/install/opencv3.2.0/share/OpenCV")
-# set(OpenCV_DIR "/home/wz/github/install/opencv4.2.0/lib/cmake/opencv4")
+# set(OpenCV_DIR "/home/tonglu/github/install/opencv3.2.0/share/OpenCV")
+set(OpenCV_DIR "/usr/local/lib/cmake/opencv4")
 # set(OpenCV_DIR "/home/wz/github/install/opencv3.2.0docker/share/OpenCV")
-find_package(OpenCV 3.2.0)
+find_package(OpenCV 4.2.0)
 if(NOT OpenCV_FOUND)
   find_package(OpenCV 3.0)
   if(NOT OpenCV_FOUND)
@@ -68,10 +68,10 @@ ${Pangolin_INCLUDE_DIRS}
 ${PROJECT_SOURCE_DIR}/Thirdparty/utils/include
 ${GLOG_INCLUDE_DIRS}
 )
-set(CMAKE_PREFIX_PATH /opt/ros/melodic)
+set(CMAKE_PREFIX_PATH /opt/ros/noetic)
 # set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 find_package(catkin REQUIRED COMPONENTS
-  roscpp pcl_ros sensor_msgs
+  roscpp sensor_msgs
 )
 find_package(Ceres)
 include_directories(
@@ -86,6 +86,7 @@ include_directories(
   ${CERES_INCLUDE_DIRS}
 # /home/wz/github/install/ceres_docker/include
 )
+message(STATUS ------- ${PCL_LIBRARIES} -------)
 SET(ARPACK_INCLUDE_DIR "/usr/include/arpack++")
 SET(ARPACK_LINK_DIR "/usr/lib")
 include_directories(${ARPACK_INCLUDE_DIR})

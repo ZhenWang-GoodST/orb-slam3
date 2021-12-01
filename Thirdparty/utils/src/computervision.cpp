@@ -96,7 +96,7 @@ bool getRTByEssential(cv::Mat& K, const std::vector<cv::Point2f>& p1, const std:
 	    return false;	
 	} 
 	double feasible_count = countNonZero(mask);
-	std::cout << (int)feasible_count << " -in- " << p1.size() << endl;
+	std::cout << (int)feasible_count << " -in- " << p1.size() << std::endl;
 	//对于RANSAC而言，outlier数量大于50%时，结果是不可靠的
 	if (feasible_count < 6 || (feasible_count / p1.size()) < 0.5) {
         std::cout << "too few or small success percentage points\n";
@@ -133,7 +133,7 @@ bool getRTByHomography(cv::Mat& K, const std::vector<cv::Point2f>& p1,
     std::cout << "H: " << H <<"\n";
     printCVPoint<cv::Point2f>(p1, p2);
 	double feasible_count = countNonZero(mask);
-	std::cout << (int)feasible_count << " -in- " << p1.size() << endl;
+	std::cout << (int)feasible_count << " -in- " << p1.size() << std::endl;
 	//对于RANSAC而言，outlier数量大于50%时，结果是不可靠的
 	// if (feasible_count < 6 || (feasible_count / p1.size()) < 0.5) {
     //     std::cout << "too few or small success percentage points\n";

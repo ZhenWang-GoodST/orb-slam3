@@ -39,6 +39,7 @@ Thirdparty/g2o/config.h
 Thirdparty/g2o/lib/
 Vocabulary/ORBvoc.txt
 build/
+builddebug/
 buildrelease/
 
 lib/
@@ -89,3 +90,4 @@ ORB_SLAM3/Thirdparty/g2o/lib/
 ORB_SLAM3/Vocabulary/ORBvoc.txt
 ORB_SLAM3/Examples/core
 
+# .devcontainer

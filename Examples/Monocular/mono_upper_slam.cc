@@ -44,6 +44,7 @@ int main(int argc, char **argv)
     // }
 
     // const int num_seq = (argc-3)/2;
+    std::cout << "test\n";
     std::string USER = get_user();
     std::string HOME = "/home/" + USER;
     std::string conf_file = HOME + "VO-LOAM/github/orb-slam3/conf/conf.json";

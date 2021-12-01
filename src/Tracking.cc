@@ -2411,6 +2411,7 @@ void Tracking::MonocularInitialization()
         // std::cout << show_map.size() << "\n";
         cv::imshow("show_map", show_map);
         cv::waitKey(1);
+        cv::imwrite(glog_dir + "/match_line_image.jpg", match_line_image);
         cv::imwrite(glog_dir + "/match.jpg", show_map);
         cv::imwrite(glog_dir + "/left.jpg", mInitialFrame.monoShowImage);
         cv::imwrite(glog_dir + "/right.jpg", mCurrentFrame.monoShowImage);

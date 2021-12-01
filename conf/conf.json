@@ -13,5 +13,5 @@
     "line_ratio": 0.125,
     "line_detect":1,
     "log_eps":-0.1,
-    "refine":2
+    "refine":0
 }
