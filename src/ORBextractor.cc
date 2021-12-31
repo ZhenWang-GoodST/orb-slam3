@@ -59,6 +59,7 @@
 #include <iostream>
 
 #include "ORBextractor.h"
+#include "orb_utils.h"
 extern std::string log_dir; 
 #include <glog/logging.h>
 
@@ -765,6 +766,7 @@ namespace ORB_SLAM3
 
     void ORBextractor::ComputeKeyPointsOctTree(vector<vector<KeyPoint> >& allKeypoints)
     {
+        cv::Mat show_image;
         allKeypoints.resize(nlevels);
 
         const float W = 35;
@@ -786,7 +788,8 @@ namespace ORB_SLAM3
             const int nRows = height/W;
             const int wCell = ceil(width/nCols);
             const int hCell = ceil(height/nRows);
-
+            show_image = mvImagePyramid[level];
+            cv::cvtColor(show_image, show_image, cv::COLOR_GRAY2BGR);
             for(int i=0; i<nRows; i++)
             {
                 const float iniY =minBorderY+i*hCell;
@@ -849,15 +852,23 @@ namespace ORB_SLAM3
                         {
                             (*vit).pt.x+=j*wCell;
                             (*vit).pt.y+=i*hCell;
+                            // (*vit).pt.x+=j*wCell + minBorderX;
+                            // (*vit).pt.y+=i*hCell + minBorderY;
                             vToDistributeKeys.push_back(*vit);
                         }
                     }
+                    // cv::Scalar color = tergeo::visualodometry::randColor();
+                    // tergeo::visualodometry::drawKeyPts(show_image, vKeysCell, 5);
 
                 }
             }
+            // cv::imshow("show_image", show_image);
+            // cv::waitKey();
 
             vector<KeyPoint> & keypoints = allKeypoints[level];
             keypoints.reserve(nfeatures);
+            
+            // keypoints = vToDistributeKeys;
 
             keypoints = DistributeOctTree(vToDistributeKeys, minBorderX, maxBorderX,
                                           minBorderY, maxBorderY,mnFeaturesPerLevel[level], level);
@@ -1179,6 +1190,49 @@ namespace ORB_SLAM3
             }
         }
 
+    }
+    void ORBextractor::computerDescritor(const cv::Mat &image, std::vector<cv::KeyPoint> &keypoints, cv::Mat &descriptor) {
+        descriptor = Mat::zeros((int)keypoints.size(), 32, CV_8UC1);
+
+        for (size_t i = 0; i < keypoints.size(); i++) {
+            // computeOrbDescriptor(keypoints[i], image, &pattern[0], descriptor.ptr((int)i));
+            auto &kpt = keypoints[i];
+            kpt.angle = IC_Angle(image, kpt.pt, umax);
+            uchar* desc = descriptor.ptr((int)i);
+            float angle = (float)kpt.angle*factorPI;
+            float a = (float)cos(angle), b = (float)sin(angle);
+
+            const uchar* center = &image.at<uchar>(cvRound(kpt.pt.y), cvRound(kpt.pt.x));
+            const int step = (int)image.step;
+
+    #define GET_VALUE(idx) \
+            center[cvRound(pattern_ptr[idx].x*b + pattern_ptr[idx].y*a)*step + \
+                cvRound(pattern_ptr[idx].x*a - pattern_ptr[idx].y*b)]
+
+            const Point* pattern_ptr = &pattern[0];
+            for (int i = 0; i < 32; ++i, pattern_ptr += 16)
+            {
+                int t0, t1, val;
+                t0 = GET_VALUE(0); t1 = GET_VALUE(1);
+                val = t0 < t1;
+                t0 = GET_VALUE(2); t1 = GET_VALUE(3);
+                val |= (t0 < t1) << 1;
+                t0 = GET_VALUE(4); t1 = GET_VALUE(5);
+                val |= (t0 < t1) << 2;
+                t0 = GET_VALUE(6); t1 = GET_VALUE(7);
+                val |= (t0 < t1) << 3;
+                t0 = GET_VALUE(8); t1 = GET_VALUE(9);
+                val |= (t0 < t1) << 4;
+                t0 = GET_VALUE(10); t1 = GET_VALUE(11);
+                val |= (t0 < t1) << 5;
+                t0 = GET_VALUE(12); t1 = GET_VALUE(13);
+                val |= (t0 < t1) << 6;
+                t0 = GET_VALUE(14); t1 = GET_VALUE(15);
+                val |= (t0 < t1) << 7;
+
+                desc[i] = (uchar)val;
+            }
+        }
     }
 
 } //namespace ORB_SLAM

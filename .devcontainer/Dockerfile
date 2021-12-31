@@ -26,7 +26,7 @@ RUN sudo chmod 777 /tmp && \
     libarpack* \
     libvtk7-dev \
     libgtk2.0-dev pkg-config \
-    ros-noetic-cv-bridge libgflags-dev libunwind-dev gdb git cmake \
+    ros-noetic-cv-bridge libgflags-dev libunwind-dev gdb git cmake libgsl-dev \
     && rm -rf /var/lib/apt/lists/*
 # USER wz 
     # ros-noetic-pcl-ros

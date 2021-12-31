@@ -6,6 +6,12 @@
 namespace tergeo{
 namespace visualodometry {
 
+cv::Scalar randColor();
+
+cv::Scalar randColor(uchar minvalue);
+
+cv::Rect getRect(const cv::Point &pt, int size);
+
 void drawMatchPts(
     const cv::Mat &left, const cv::Mat &right, cv::Mat &show_image,
     const std::vector<cv::Point2f> &p1, const std::vector<cv::Point2f> &p2,
@@ -43,8 +49,8 @@ void singleMatch(const cv::Mat &image,
 
 cv::Mat getInnerPatch(const cv::Mat &image, const cv::Mat &templ);
 
-Match baseTemplate(const cv::Mat &image, 
-        const cv::Mat &templ, cv::Mat &TMatched_image, double initial_angle = 0);
+Match baseTemplate(const cv::Mat &image, const cv::Mat &templ, cv::Mat &TMatched_image, 
+        double initial_angle = 0, double search_interval = 0.5, int search_range = 5);
 
 }
 }

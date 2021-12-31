@@ -1356,8 +1356,8 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp,
     } else if (debugmode == 2) {
         cv::equalizeHist(mImGray, mImGray);
     } else if (debugmode == 3) {
-        cv::Size ksize(5, 5);
-        double simX = 2;
+        cv::Size ksize(cfg["para_5"], cfg["para_5"]);
+        double simX = cfg["para_6"];
         cv::Mat tmp = mImGray.clone();
         cv::GaussianBlur(mImGray, mImGray, ksize, simX);
     } else if (debugmode == 4) {
@@ -2371,19 +2371,105 @@ void Tracking::MonocularInitialization()
         // bdm->knnMatch(mCurrentFrame.lineDescriptor, mInitialFrame.lineDescriptor, knnmatches, 1, cv::Mat());
         // bdm->match(mCurrentFrame.lineDescriptor, mInitialFrame.lineDescriptor, matches, cv::Mat());
         PairwiseLineMatching linematch;
-        std::vector<unsigned int> matchResult;
-        linematch.LineMatching(mInitialFrame.scalelines, mCurrentFrame.scalelines, matchResult);
+        std::vector<int> matchResult;
+        std::vector<cv::DMatch> pt_matchs;
         cv::Mat match_line_image;
         cv::Scalar single_color(0, 0, 255), match_color(0, 255, 0);
         cv::Mat _left, _right;
         cv::cvtColor(mInitialFrame.monoImage, _left, cv::COLOR_GRAY2BGR);
         cv::cvtColor(mCurrentFrame.monoImage, _right, cv::COLOR_GRAY2BGR);
+        cv::Mat scale_match;
+        linematch.show_image = cv::Mat::zeros(cv::Size(_left.cols + _right.cols, _left.rows), _left.type());
+        cv::Rect rect1(cv::Point2f(0, 0), _left.size());
+        cv::Rect rect2(cv::Point2f(_left.cols, 0), _left.size());
+        _left.copyTo(linematch.show_image(rect1));
+        _right.copyTo(linematch.show_image(rect2));
+        linematch.LineMatching(mInitialFrame.pl_structure.scale_lines, mInitialFrame.pl_structure.scale_pts, mCurrentFrame.pl_structure.scale_lines, mCurrentFrame.pl_structure.scale_pts, matchResult, pt_matchs);
+        // linematch.consistencyCheck(mInitialFrame.pl_structure.scale_lines, mInitialFrame.pl_structure.scale_pts, mCurrentFrame.pl_structure.scale_lines, mCurrentFrame.pl_structure.scale_pts, matchResult, pt_matchs);
+        cv::drawMatches(_left, mInitialFrame.pl_structure.scale_pts.keypoints, 
+            _right, mCurrentFrame.pl_structure.scale_pts.keypoints, pt_matchs, scale_match);
+        linematch.drawMatch(_left, mInitialFrame.pl_structure.scale_lines, _right, mCurrentFrame.pl_structure.scale_lines, matchResult, match_line_image);
+        cv::imshow("line", match_line_image);
+        cv::imshow("scale_match", scale_match);
+        cv::imwrite(glog_dir + "/scale_match.jpg", scale_match);
+        cv::imwrite(glog_dir + "/match_line_image.jpg", match_line_image);
+        cv::waitKey();
+        return;
+        ORBmatcher matcher(0.9,true);
+        //经过模板匹配之后只剩下标记为-2的为没有搜索的
+        mvIniMatches = vector<int>(mInitialFrame.pl_structure.scale_pts.keypoints.size(),-2);
+        cv::Mat show_map;
+        cv::Mat matched_image;
+        cv::Mat lastIm, currIm;
+        cv::Size size(mInitialFrame.monoImage.cols / 4, mCurrentFrame.monoImage.rows / 4);
+        cv::resize(mInitialFrame.monoImage, lastIm, size, 0.0, 0.0, cv::InterpolationFlags::INTER_LINEAR);
+        cv::resize(mCurrentFrame.monoImage, currIm, size, 0.0, 0.0, cv::InterpolationFlags::INTER_LINEAR);
+        const int left_size = mInitialFrame.pl_structure.scale_pts.keypoints.size();
+        const int right_size = mCurrentFrame.pl_structure.scale_pts.keypoints.size();
+        // int match_size = match_indices.size();
+        mInitialFrame.pl_structure.isolate_pts.clear();
+        mCurrentFrame.pl_structure.isolate_pts.clear();
+        mInitialFrame.pl_structure.isolate_pts = std::vector<int>(left_size, 1);
+        mCurrentFrame.pl_structure.isolate_pts = std::vector<int>(right_size, 1);
+        cv::Mat inner_patch = tergeo::visualodometry::getInnerPatch(currIm, lastIm);
+        #define get_template_mat(im, pt, size) im(cv::Rect(pt.x - size / 2, pt.y - size / 2, size, size))
+        for (int i = 0; i < pt_matchs.size(); ++i) {
+            const int &left_id = pt_matchs[i].queryIdx;
+            const int &right_id = pt_matchs[i].trainIdx;
+            mvIniMatches[left_id] = right_id;
+            const auto &left_pt = mInitialFrame.pl_structure.scale_pts.keypoints[left_id];
+            const auto &right_pt = mCurrentFrame.pl_structure.scale_pts.keypoints[right_id];
+            double template_size = left_pt.size;
+            double search_size = template_size * 2;
+            inner_patch = get_template_mat(mInitialFrame.monoImage, left_pt.pt, left_pt.size);
+            currIm = get_template_mat(mCurrentFrame.monoImage, right_pt.pt, right_pt.size);
+            TMatch tmatch = tergeo::visualodometry::baseTemplate(currIm, inner_patch, matched_image, 0, 1, 0);
+            tmatch.transform.ptr<double>(0)[2] += right_pt.pt.x;
+            tmatch.transform.ptr<double>(1)[2] += right_pt.pt.y;
+            cv::Point2f right_predict = tmatch.transPoint(left_pt.pt);
+            const auto pt_id = mInitialFrame.pl_structure.scale_pts.hierarchy[left_id];
+            if (pt_id.empty()) continue;
+            std::vector<cv::Point2f> left_pts, predict_pts;
+            //to do 需要内缩一圈
+            for (const auto &id : pt_id) {
+                left_pts.push_back(mInitialFrame.pl_structure.scale_pts.keypoints[id].pt - left_pt.pt);
+                mInitialFrame.pl_structure.isolate_pts[id] = -1;
+            }
+            tmatch.transPoint(left_pts, predict_pts);
+            //然后设置阈值搜索最近的
+            std::vector<int> affine_matches = {};
+            matcher.SearchByTemplateAffine(&mCurrentFrame, predict_pts, affine_matches, 5);
+            //update to full
+            for (size_t j = 0; j < affine_matches.size(); ++j) {
+                mvIniMatches[pt_id[j]] = affine_matches[j];
+                if (affine_matches[j] >= 0)
+                mCurrentFrame.pl_structure.isolate_pts[affine_matches[j]] = -1;
+            }
+        }
+        // cv::drawKeypoints(mInitialFrame.monoShowImage, mInitialFrame.pl_structure.scale_pts.keypoints, mInitialFrame.monoShowImage, tergeo::visualodometry::red);
+        // cv::drawKeypoints(mCurrentFrame.monoShowImage, mCurrentFrame.pl_structure.scale_pts.keypoints, mCurrentFrame.monoShowImage, tergeo::visualodometry::red);
+        tergeo::visualodometry::drawMatchPts(mInitialFrame.monoShowImage, mCurrentFrame.monoShowImage, show_map, 
+            mInitialFrame.pl_structure.scale_pts.keypoints, mCurrentFrame.pl_structure.scale_pts.keypoints,
+            mvIniMatches, cv::Scalar(0, 255, 0), true);
+        
+        // 匹配不在大尺度点里面的
+        //计算局部变换关系
+        mInitialFrame.pl_structure.computeLocalTransform(mCurrentFrame.pl_structure, matchResult, pt_matchs);
+        mInitialFrame.pl_structure.spreadTransform();
+
+        int localmatches = matcher.SearchByLocalAffine(&mInitialFrame, &mCurrentFrame, mInitialFrame.pl_structure.scale_pts.keypoints, mvIniMatches);
+
+        tergeo::visualodometry::drawMatchPts(mInitialFrame.monoShowImage, mCurrentFrame.monoShowImage, show_map, 
+            mInitialFrame.pl_structure.scale_pts.keypoints, mCurrentFrame.pl_structure.scale_pts.keypoints,
+            mvIniMatches, cv::Scalar(0, 255, 0), true);
+        
+        cv::imshow("show_map", show_map);
+        cv::waitKey();
+        cv::imwrite(glog_dir + "/final.jpg", show_map);
+        cv::imshow("scale_match", scale_match);
         std::vector<char> mask_line(matches.size(), 1);
         // cv::line_descriptor_custom::drawLineMatches(_left, mInitialFrame.mvKeyLines, _right, mCurrentFrame.mvKeyLines, knnmatches[0], match_line_image, match_color, single_color, mask_line);
         // cv::line_descriptor_custom::drawLineMatches(_left, mInitialFrame.mvKeyLines, _right, mCurrentFrame.mvKeyLines, matches, match_line_image, match_color, single_color, mask_line);
-        linematch.drawMatch(_left, mInitialFrame.scalelines, _right, mCurrentFrame.scalelines, matchResult, match_line_image);
-        cv::imshow("line", match_line_image);
-        cv::waitKey();
         // for (int i = 0; i < matches.size(); ++i) {
         //     cv::Point2f left_s;
         //     left_s.x = mInitialFrame.mvKeyLines[matches[i].queryIdx].startPointX;
@@ -2392,26 +2478,23 @@ void Tracking::MonocularInitialization()
         // }
         
         // Find correspondences
-        ORBmatcher matcher(0.9,true);
         // TMatcher tmatcher;
-        cv::Mat matched_image;
-        cv::Mat lastIm, currIm;
-        cv::Size size(mInitialFrame.monoImage.cols / 4, mCurrentFrame.monoImage.rows / 4);
+        size = cv::Size(mInitialFrame.monoImage.cols / 4, mCurrentFrame.monoImage.rows / 4);
         cv::resize(mInitialFrame.monoImage, lastIm, size, 0.0, 0.0, cv::InterpolationFlags::INTER_LINEAR);
         cv::resize(mCurrentFrame.monoImage, currIm, size, 0.0, 0.0, cv::InterpolationFlags::INTER_LINEAR);
-        cv::Mat inner_patch = tergeo::visualodometry::getInnerPatch(currIm, lastIm);
+        inner_patch = tergeo::visualodometry::getInnerPatch(currIm, lastIm);
         TMatch tmatch = tergeo::visualodometry::baseTemplate(currIm, inner_patch, matched_image);
         cv::imwrite(glog_dir + "/template_match.jpg", matched_image);
 
         int nmatches = matcher.SearchForInitialization(mInitialFrame,mCurrentFrame,mvbPrevMatched,mvIniMatches,winsize);
         LOG(INFO) << "\n" << tmatch ;
-        cv::Mat show_map;
         // cv::namedWindow("show_map", cv::WINDOW_NORMAL);
         tergeo::visualodometry::drawMatchPts(mInitialFrame.monoImage, mCurrentFrame.monoImage, show_map, mInitialFrame.mvKeysUn, mCurrentFrame.mvKeysUn,mvIniMatches, cv::Scalar(0, 255, 0), true);
         // std::cout << show_map.size() << "\n";
         cv::imshow("show_map", show_map);
         cv::waitKey(1);
         cv::imwrite(glog_dir + "/match_line_image.jpg", match_line_image);
+        cv::imwrite(glog_dir + "/scale_match.jpg", scale_match);
         cv::imwrite(glog_dir + "/match.jpg", show_map);
         cv::imwrite(glog_dir + "/left.jpg", mInitialFrame.monoShowImage);
         cv::imwrite(glog_dir + "/right.jpg", mCurrentFrame.monoShowImage);

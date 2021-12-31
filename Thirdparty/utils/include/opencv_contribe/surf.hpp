@@ -25,6 +25,23 @@ namespace cv_contribe {
 class SURF_Impl : public SURF
 {
 public:
+    
+    /** @brief Computes the descriptors for a set of keypoints detected in an image (first variant) or image set
+    (second variant).
+
+    @param image Image.
+    @param keypoints Input collection of keypoints. Keypoints for which a descriptor cannot be
+    computed are removed. Sometimes new keypoints can be added, for example: SIFT duplicates keypoint
+    with several dominant orientations (for each orientation).
+    @param descriptors Computed descriptors. In the second variant of the method descriptors[i] are
+    descriptors computed for a keypoints[i]. Row j is the keypoints (or keypoints[i]) is the
+    descriptor for keypoint j-th keypoint.
+     */
+    CV_WRAP void compute( InputArray image,
+                                  CV_OUT CV_IN_OUT std::vector<KeyPoint>& keypoints,
+                                  OutputArray descriptors ) CV_OVERRIDE;
+
+                                  
     //! the full constructor taking all the necessary parameters
     explicit CV_WRAP SURF_Impl(double hessianThreshold,
                                int nOctaves = 4, int nOctaveLayers = 2,

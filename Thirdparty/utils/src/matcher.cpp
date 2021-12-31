@@ -36,6 +36,56 @@ std::ostream &operator<<(std::ostream &out, Match &A) {
     return out;
 }
 
+
+void Match::setTR(double an, double tx, double ty)  {
+    transform = cv::getRotationMatrix2D(cv::Point(0, 0), an, 1.0);
+    std::cout << transform.type() << "\n";
+    // transform = cv::Matx23f(R);
+    transform.at<float>(0, 2) = tx;
+    transform.at<float>(1, 2) = ty;
+    _R = Eigen::Rotation2D<double>(an / 180 * M_PI);
+    bool invertible = false;
+    _R.computeInverseWithCheck(inver_R, invertible);
+    if (!invertible) {
+        std::cout << "error\n";
+    }
+    std::cout << transform << "\n";
+    std::cout << _R << "\n";
+    for (size_t i = 0; i < 2; ++i) {
+        for (size_t j = 0; j < 2; ++j) {
+            std::cout << transform.at<float>(i, j) << " " << _R(i, j) << "\n";
+        }
+    }
+    
+    _T << tx, ty;
+    inver_T = -_T;   
+}
+
+cv::Point2f Match::transPoint(const cv::Point2f &pt) {
+    cv::Point2f result;
+    auto ptr = (double *)transform.ptr();
+    result.x = ptr[0] * pt.x + ptr[1] * pt.y + ptr[3];
+    result.x = ptr[4] * pt.x + ptr[5] * pt.y + ptr[6];
+    return result;
+}
+
+void Match::transPoint(const std::vector<cv::Point2f> &input_pts, std::vector<cv::Point2f> &output_pts) {
+    int ptsize = input_pts.size();
+    cv::Mat ptMat = cv::Mat::zeros(ptsize, 3, CV_64F);
+    // auto ptr = (float *)ptMat.ptr()
+    for (size_t i = 0; i < ptsize; i++) {
+        ptMat.ptr<double>(i)[0] = input_pts[i].x;
+        ptMat.ptr<double>(i)[1] = input_pts[i].y;
+        ptMat.ptr<double>(i)[2] = 1;
+    }
+    cv::Mat outMat = ptMat * transform.t();
+    output_pts.clear();
+    std::cout << ptMat << "\n\n";
+    std::cout << transform << "\n\n";
+    std::cout << outMat << "\n\n";
+    const cv::Point2d *pt_ptr = (const cv::Point2d*)outMat.data;
+    std::copy(pt_ptr, pt_ptr + ptsize, std::back_inserter(output_pts));
+}
 void Matcher::load(
         const cv::Mat &K,
         // const cv::Mat &last_image, 

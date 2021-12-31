@@ -90,6 +90,13 @@ public:
     // Project MapPoints into KeyFrame using a given Sim3 and search for duplicated MapPoints.
     int Fuse(KeyFrame* pKF, cv::Mat Scw, const std::vector<MapPoint*> &vpPoints, float th, vector<MapPoint *> &vpReplacePoint);
 
+    // 根据仿射变换关系进行搜索，寻找最近的九个方块，搜索最近点
+    int SearchByTemplateAffine(Frame* frame, const std::vector<cv::Point2f> &pts, std::vector<int> &match_indices, int dis_thresh = 3);
+
+    // 搜索不在大尺度点里面的
+    int SearchByLocalAffine(Frame* frame1, Frame* frame2, const std::vector<cv::KeyPoint> &pts, std::vector<int> &match_indices, int dis_thresh = 3);
+
+
 public:
 
     static const int TH_LOW;

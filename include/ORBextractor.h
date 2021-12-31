@@ -81,6 +81,7 @@ public:
     }
 
     std::vector<cv::Mat> mvImagePyramid;
+    void computerDescritor(const cv::Mat &image, std::vector<cv::KeyPoint> &keypoints, cv::Mat &descriptor);
 
 protected:
 

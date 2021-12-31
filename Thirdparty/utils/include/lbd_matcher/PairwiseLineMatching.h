@@ -15,8 +15,11 @@
 
 //each node in the graph is a possible line matching pair in the left and right image
 struct Node{
-	unsigned int leftLineID;//the index of line in the left image
-	unsigned int rightLineID;//the index of line in the right image
+    FeatureType type = FeatureType::Line_;
+	unsigned int leftLineID = -1;//the index of line in the left image
+	unsigned int rightLineID = -1;//the index of line in the right image
+	unsigned int leftPtID = -1;//the index of line in the left image
+	unsigned int rightPtID = -1;//the index of line in the right image
 };
 
 // Specifies a vector of nodes.
@@ -32,19 +35,28 @@ struct CompareS {
     {return lhs<rhs;}
 };
 typedef  std::multimap<double,unsigned int,CompareS> DISMAP;
-#define ResolutionScale 20 //10 degree
-const unsigned int dim = 360 / ResolutionScale; //number of the bins of histogram
+#define ResolutionScale 5 //10 degree
+const unsigned int _dim = 360 / ResolutionScale; //number of the bins of histogram
 
 class PairwiseLineMatching
 {
 public:
+    
+    cv::Mat show_image;
+    std::vector<linematch_score> linematch_scores = {}; 
+    
     PairwiseLineMatching(){};
-    void LineMatching(ScaleLines &linesInLeft,ScaleLines &linesInRight, std::vector<unsigned int> &matchResult);
+    void LineMatching(
+        ScaleLines &linesInLeft, ScalePoints leftPt, ScaleLines &linesInRight, ScalePoints rightPt, 
+        std::vector<int> &matchResult, std::vector<cv::DMatch> &pt_matchs);
     ~PairwiseLineMatching(){};
     void drawMatch(const cv::Mat &left, const ScaleLines &left_lines, 
         const cv::Mat &right, const ScaleLines &right_lines, 
-        const std::vector<unsigned int> &matchResult, cv::Mat &show_image);
-    double calAngleAndLenHist(ScaleLines &linesInLeft,  std::array<double, dim> &angleHist, std::array<double, dim> &lengthHist);
+        const std::vector<int> &matchResult, cv::Mat &show_image);
+    double calAngleAndLenHist(ScaleLines &linesInLeft,  std::array<double, _dim> &angleHist, std::array<double, _dim> &lengthHist);
+
+    void consistencyCheck(const ScaleLines &linesInLeft, const ScalePoints &leftPt, const ScaleLines &linesInRight, const ScalePoints &rightPt, 
+        std::vector<int> &matchResult, std::vector<cv::DMatch> &pt_matchs);
 private:
     /* Compute the approximate global rotation angle between image pair(i.e. the left and right images).
    * As shown in Bin Fan's work "Robust line matching through line-point invariants", this approximate
@@ -60,17 +72,18 @@ private:
    * return: the global rotation angle
    */
     double GlobalRotationOfImagePair_(
-        std::array<double, dim> angleHistLeft, std::array<double, dim> lengthLeft,
-        std::array<double, dim> angleHistRight, std::array<double, dim> lengthRight);
+        std::array<double, _dim> angleHistLeft, std::array<double, _dim> lengthLeft,
+        std::array<double, _dim> angleHistRight, std::array<double, _dim> lengthRight);
     /* Build the symmetric non-negative adjacency matrix M, whose nodes are the potential assignments a = (i_l, j_r)
   * and whose weights on edges measure the agreements between pairs of potential assignments. That is where the pairwise
   * constraints are applied(c.f. A spectral technique for correspondence problems using pairwise constraints, M.Leordeanu).
   */
-    void BuildAdjacencyMatrix_(ScaleLines &linesInLeft,ScaleLines &linesInRight) __attribute__ ((optimize(0))) ;
+    void BuildAdjacencyMatrix_(ScaleLines &linesInLeft, ScalePoints &ptInLeft, ScaleLines &linesInRight, ScalePoints &ptInRight) ;
     /* Get the final matching from the principal eigenvector.
     */
-    void MatchingResultFromPrincipalEigenvector_(ScaleLines &linesInLeft,ScaleLines &linesInRight,
-    		std::vector<unsigned int > &matchResult);
+    void MatchingResultFromPrincipalEigenvector_(
+        const ScaleLines &linesInLeft, const ScalePoints &ptInLeft, const ScaleLines &linesInRight, const ScalePoints &ptInRight,
+    		std::vector<int > &matchResult, std::vector<cv::DMatch> &pt_matchs);
     double globalRotationAngle_;//the approximate global rotation angle between image pairs
 
     /*construct a map to store the principal eigenvector and its index.
@@ -82,6 +95,7 @@ private:
     EigenMAP eigenMap_;
     Nodes_list nodesList_;//save all the possible matched line pairs
     double minOfEigenVec_;//the acceptable minimal value in the principal eigen vector;
+    cv::Mat matrix;
 };
 
 

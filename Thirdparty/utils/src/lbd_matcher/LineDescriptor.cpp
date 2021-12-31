@@ -4,10 +4,33 @@
 #include "lsd_c.h"
 #include "descriptor_custom.hpp"
 #include "opencv_contribe.h"
+#include "opencv_utils.h"
 
 #define SalienceScale 0.9//0.9
 nlohmann::json line_cfg;
 using namespace std;
+
+void OctaveSingleLine::computeElements(double segment_length) {
+    double sind = std::sin(direction);
+    double cosd = std::cos(direction);
+	int itration = std::floor(lineLength / segment_length);
+	keypoints.reserve(itration);
+	for (size_t i = 0; i < itration; ++i) {
+		double x = sPointInOctaveX + segment_length * cosd * i;
+		double y = sPointInOctaveY + segment_length * sind * i;
+		keypoints.push_back(cv::KeyPoint(x, y, -1));
+	}
+	keypoints.push_back(cv::KeyPoint(ePointInOctaveX, ePointInOctaveY, -1));
+	
+}
+
+void OctaveSingleLine::draw(cv::Mat &image) const{
+	cv::line(image, cv::Point(sPointInOctaveX, sPointInOctaveY), 
+                    cv::Point(ePointInOctaveX, ePointInOctaveY), tergeo::visualodometry::red);
+	for (const auto &pt : keypoints) {
+		cv::circle(image, pt.pt, 5, tergeo::visualodometry::green);
+	}
+}
 
 LineDescriptor::LineDescriptor()
 {
@@ -374,7 +397,7 @@ int LineDescriptor::OctaveKeyLines(const cv::Mat & image_, ScaleLines &keyLines,
 		cv::Sobel( image, edLineVec_[octaveCount]->dyImg_, CV_16SC1, 0, 1, 3);
         edLineVec_[octaveCount]->imageHeight = blur.rows;
         edLineVec_[octaveCount]->imageWidth = blur.cols;
-       cv::Ptr<cv::cv_contribe::LineSegmentDetector> ls;
+		cv::Ptr<cv::cv_contribe::LineSegmentDetector> ls;
 		ls = cv::cv_contribe::createLineSegmentDetector( opts.refine,
 												opts.scale,
 												opts.sigma_scale,
@@ -387,6 +410,7 @@ int LineDescriptor::OctaveKeyLines(const cv::Mat & image_, ScaleLines &keyLines,
 		std::vector<cv::Vec4f> octave_lines;
 		std::vector<double> w, p, n;
 		ls->detect( blur, octave_lines, w, p, n);
+		line_mask = std::move(ls->mask);
 		cv::Mat show_image = blur.clone();
 		cv::cvtColor(show_image, show_image, cv::COLOR_GRAY2BGR);
 		// blur.convertTo(show_image, CV_8UC3);
@@ -572,6 +596,8 @@ int LineDescriptor::OctaveKeyLines(const cv::Mat & image_, ScaleLines &keyLines,
 			e2 = ey;//ey
 			dx = e1 - s1;//ex-sx
 			dy = e2 - s2;//ey-sy
+			singleLine.midX = (sx + ex) / 2;
+			singleLine.midY = (sy + ey) / 2;
 			if(direction>=-0.75*M_PI&&direction<-0.25*M_PI){
 				if(dy>0){shouldChange = true;}
 			}

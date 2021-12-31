@@ -4,7 +4,8 @@
  *  Created on: 2011-8-19
  *      Author: lz
  */
-
+//opencv得放到arl前面，有定义冲突
+#include "opencv_utils.h"
 #include "PairwiseLineMatching.h"
 #include "gsl_optimize.h"
 #include <arlsmat.h>
@@ -12,6 +13,7 @@
 #include <vector>
 #include <math.h>
 #include <iostream>
+
 
 using namespace std;
 
@@ -42,7 +44,7 @@ const unsigned int _dim_ = range / _ResolutionScale;
 #define RelativeAngleDifferenceThreshold 0.7854 //45degree
 #define IntersectionRationDifThreshold 1
 #define ProjectionRationDifThreshold 1
-#define PointDistRatioThreshold 0.7
+#define PointDistRatioThreshold 0.2
 
 //this is used when get matching result from principal eigen vector
 #define WeightOfMeanEigenVec 0.1
@@ -74,7 +76,7 @@ bool matSave(std::vector<std::vector<double>> mat, const std::string &filename)
 	{
 		for (int i = 0; i < mat.size(); ++i) {
 			fs <<"id: " << i << " : ";
-			for (int j = 0; j < mat[j].size(); ++j) {
+			for (int j = 0; j < mat[i].size(); ++j) {
 				fs << mat[i][j] << " ";
 			}
 			fs << "\n";
@@ -86,7 +88,7 @@ bool matSave(std::vector<std::vector<double>> mat, const std::string &filename)
 
 void PairwiseLineMatching::LineMatching(
         ScaleLines &linesInLeft, ScalePoints leftPt, ScaleLines &linesInRight, ScalePoints rightPt, 
-        std::vector<unsigned int> &matchResult, std::vector<cv::DMatch> &pt_matchs)
+        std::vector<int> &matchResult, std::vector<cv::DMatch> &pt_matchs)
 {
 	//compute the global rotation angle of image pair;
 	std::array<double, _dim_> _angleHistLeft, _lengthLeft, _angleHistRight, _lengthRight;
@@ -95,11 +97,12 @@ void PairwiseLineMatching::LineMatching(
 	globalRotationAngle_ = GlobalRotationOfImagePair_(_angleHistLeft, _lengthLeft, _angleHistRight, _lengthRight);
     BuildAdjacencyMatrix_(linesInLeft, leftPt, linesInRight, rightPt);
 	MatchingResultFromPrincipalEigenvector_(linesInLeft, leftPt, linesInRight, rightPt, matchResult, pt_matchs);
+	// consistencyCheck(linesInLeft, leftPt, linesInRight, rightPt, matchResult, pt_matchs);
 }
 
 void PairwiseLineMatching::drawMatch(const cv::Mat &left, const ScaleLines &left_lines, 
         const cv::Mat &right, const ScaleLines &right_lines, 
-        const std::vector<unsigned int> &matchResult, cv::Mat &show_image) {
+        const std::vector<int> &matchResult, cv::Mat &show_image) {
 	cv::Point p1, p2;
     int lineIDLeft, lineIDRight;
     int lowest1 = 0, highest1 = 255;
@@ -362,11 +365,12 @@ void PairwiseLineMatching::BuildAdjacencyMatrix_(ScaleLines &linesInLeft, ScaleP
 	for (int idL = 0; idL < numPointLeft; ++idL)
 	{
 		min_dis_in_right = 100;
+		second_min_in_right = 100;
 		short samePtSizeL = ptInLeft.points[idL].size();
 		for (int idR = 0; idR < numPointRight; ++idR)
 		{
 			min_dis_in_scale = 100;
-			short samePtSizeR = ptInLeft.points[idR].size();
+			short samePtSizeR = ptInRight.points[idR].size();
 			desOld = (float *)ptInLeft.descriptor.ptr(idL);
 			for (short ptIDInSamePtsL = 0; ptIDInSamePtsL < samePtSizeL; ++ptIDInSamePtsL)
 			{
@@ -410,8 +414,11 @@ void PairwiseLineMatching::BuildAdjacencyMatrix_(ScaleLines &linesInLeft, ScaleP
 			if (desPtDisMat[i][j] > desPtDisMat[i][numPointRight] * 2) {
 				continue; //the descriptor difference is too large;
 			}
+			if (std::abs(ptInLeft.points[i][0].size - ptInRight.points[j][0].size) > 10) {
+				continue; //尺度差异太大;
+			}
 			if (globalRotationAngle_ < TwoPI) { //there exist a global rotation angle between two image
-				angleDif = fabs(ptInLeft.points[i][0].angle + globalRotationAngle_ - ptInRight.points[i][0].angle);
+				angleDif = fabs(ptInLeft.points[i][0].angle + globalRotationAngle_ - ptInRight.points[j][0].angle);
 				// if (fabs(TwoPI - angleDif) > AngleDifferenceThreshold && angleDif > AngleDifferenceThreshold)
 				// {
 				// 	continue; //the angle difference is too large;
@@ -492,6 +499,7 @@ void PairwiseLineMatching::BuildAdjacencyMatrix_(ScaleLines &linesInLeft, ScaleP
     //定权，距离和描述符ratio test
 	double max_dist = 1280 * 1280;
 	double dist_thresh = 600 * 600;//图像宽度一半，超出这部分的太远，不能加入约束
+	matrix = cv::Mat::zeros(dim, dim, CV_32F);
 	for (unsigned int j = 0; j < dim; j++)
 	{ //column
 	    FeatureType left_type = nodesList_[j].type;
@@ -540,18 +548,22 @@ void PairwiseLineMatching::BuildAdjacencyMatrix_(ScaleLines &linesInLeft, ScaleP
 				}
 				//1.描述符约束、2.距离约束、3.角度约束，后两者为空间约束，选其中差异大的一个
 				double dist = std::min(left_pt_dist, right_pt_dist);
-				double ratio = desPtDisMat[idLeft1][numPointLeft + 1] / desPtDisMat[idLeft1][numPointLeft];
+				double ratio_test1 = desPtDisMat[idLeft1][numPointLeft + 1] / desPtDisMat[idLeft1][numPointLeft];
+				double ratio_test2 = desPtDisMat[idRight1][numPointRight + 1] / desPtDisMat[idRight2][numPointRight];
+				//如果两个ratio_test都比较小，直接给最值，不考虑距离了
 				double weight = 0;
-				weight += ratio / 2;
+				weight += ratio_test1 / 2;
 				weight -= dist / max_dist;
 				//设置权重 2 + weight， 1 - weight / 2，另外，还需要算出阈值
 				// if (std::min(left_pt_dist, right_pt_dist) > dist_thresh) continue;//必须任意两对都加上约束，否则约束不够
 				//第一次运行状况为无描述符约束，仅仅包含空间约束就可以匹配正确，点线组合参数为2
-				double dist_ratio = 1 - std::min(left_pt_dist / right_pt_dist, right_pt_dist / left_pt_dist);
+				// double dist_ratio = 1 - std::min(left_pt_dist / right_pt_dist, right_pt_dist / left_pt_dist);
+				double dist_ratio = std::abs(left_pt_dist - right_pt_dist) / std::min(left_pt_dist, right_pt_dist);
 				if (dist_ratio > PointDistRatioThreshold ) continue;
 				nnz++;
 				similarity = 4 - dist_ratio * 2 - desPtDisMat[left_pt1][right_pt1] / DescriptorDifThresholdPt - desPtDisMat[left_pt2][right_pt2] / DescriptorDifThresholdPt ;
-                adjacenceVec[(2 * dim - j - 1) * j / 2 + i] = similarity;
+                adjacenceVec[(2 * dim - j - 1)* j / 2 + i] = similarity;
+				matrix.at<float>(i, j) = similarity; 
 				continue;
 			} else if (line_type_count == 1) { //点线组合
 				int left_pt1 = idLeft1 - numLineLeft;
@@ -598,11 +610,13 @@ void PairwiseLineMatching::BuildAdjacencyMatrix_(ScaleLines &linesInLeft, ScaleP
 					pt_dist_right[idRight2][idRight1] = right_pt_dist;
 				}
 				// if (std::min(left_pt_dist, right_pt_dist) > dist_thresh) continue;
-				double dist_ratio = 1 - std::min(left_pt_dist / right_pt_dist, right_pt_dist / left_pt_dist);
+				// double dist_ratio = 1 - std::min(left_pt_dist / right_pt_dist, right_pt_dist / left_pt_dist);
+				double dist_ratio = std::abs(left_pt_dist - right_pt_dist) / std::min(left_pt_dist, right_pt_dist);
 				if (dist_ratio > PointDistRatioThreshold ) continue;
 				nnz++;
-				similarity = 4 - dist_ratio * 2;//2可以，好像有一次改成4不行，权重设置是否要和点保持一致
+				similarity = 4 - dist_ratio * 4;//2可以，好像有一次改成4不行，权重设置是否要和点保持一致
                 adjacenceVec[(2 * dim - j - 1) * j / 2 + i] = similarity;
+				matrix.at<float>(i, j) = similarity;
 				continue;
 			}
 			//first compute the relative angle between left pair and right pair.
@@ -761,6 +775,7 @@ void PairwiseLineMatching::BuildAdjacencyMatrix_(ScaleLines &linesInLeft, ScaleP
 				similarity = 4 - desDisMat[idLeft1][idRight1] / DescriptorDifThreshold - desDisMat[idLeft2][idRight2] / DescriptorDifThreshold - pRatioDif / ProjectionRationDifThreshold - relativeAngleDif / RelativeAngleDifferenceThreshold;
                 adjacenceVec[(2 * dim - j - 1) * j / 2 + i] = similarity;
 				nnz++;
+				matrix.at<float>(i, j) = similarity;
 				//				testMat[i][j] = similarity;
 				//				testMat[j][i] = similarity;
 			}
@@ -775,6 +790,7 @@ void PairwiseLineMatching::BuildAdjacencyMatrix_(ScaleLines &linesInLeft, ScaleP
 				similarity = 5 - desDisMat[idLeft1][idRight1] / DescriptorDifThreshold - desDisMat[idLeft2][idRight2] / DescriptorDifThreshold - iRatioDif / IntersectionRationDifThreshold - pRatioDif / ProjectionRationDifThreshold - relativeAngleDif / RelativeAngleDifferenceThreshold;
 				adjacenceVec[(2 * dim - j - 1) * j / 2 + i] = similarity;
 				nnz++;
+				matrix.at<float>(i, j) = similarity;
 				//				testMat[i][j] = similarity;
 				//				testMat[j][i] = similarity;
 			}
@@ -831,11 +847,11 @@ void PairwiseLineMatching::BuildAdjacencyMatrix_(ScaleLines &linesInLeft, ScaleP
 }
 
 void PairwiseLineMatching::MatchingResultFromPrincipalEigenvector_(
-        ScaleLines &linesInLeft, ScalePoints &ptInLeft, ScaleLines &linesInRight, ScalePoints &ptInRight,
-		std::vector<unsigned int > &matchResult, std::vector<cv::DMatch> &pt_matchs)
+        const ScaleLines &linesInLeft, const ScalePoints &ptInLeft, const ScaleLines &linesInRight, const ScalePoints &ptInRight,
+		std::vector<int > &matchResult, std::vector<cv::DMatch> &pt_matchs)
 {
 	double TwoPI = 2 * M_PI;
-	std::vector<unsigned int> matchRet1;
+	std::vector<int> matchRet1;
 	std::vector<unsigned int> matchRet2;
 	double matchScore1 = 0;
 	double matchScore2 = 0;
@@ -872,7 +888,20 @@ void PairwiseLineMatching::MatchingResultFromPrincipalEigenvector_(
 	matSave(mat, "eigenMap.txt");
 	resMap.flush();
 	resMap.close();
-
+    cv::Mat line_show = show_image.clone();
+    cv::Mat point_show = show_image.clone();
+	std::fstream out("/home/tonglu/VO-LOAM/github/orb-slam3/build/emap.txt", std::ios_base::openmode::_S_out);
+	out << std::setw(9);
+	for (size_t i = 0; i < matrix.rows; ++i) {
+		out << i << " : ";
+		for (size_t j = 0; j < matrix.cols; ++j) {
+			out << std::setw(9) << matrix.at<float>(i, j) << " ";
+		}
+		out << "\n";
+		
+	}
+	// out << matrix << "\n";
+	out.close();
 	/*first try, start from the top element in eigenmap */
 	while (1)
 	{
@@ -883,10 +912,19 @@ void PairwiseLineMatching::MatchingResultFromPrincipalEigenvector_(
 			break;
 		}
 		id = iter->second;
+		cv::Scalar randcolor = tergeo::visualodometry::randColor();
 		if (nodesList_[id].type == FeatureType::Point_) {
+			std::cout << "match type: point\n";
 			int left_pt = nodesList_[id].leftPtID - linesInLeft.size();
 			int right_pt = nodesList_[id].rightPtID - linesInRight.size();
 			pt_matchs.push_back(cv::DMatch(left_pt, right_pt, -1));
+			cv::Point2f lpt = ptInLeft.points[left_pt][0].pt;
+			cv::Point2f rpt = ptInRight.points[right_pt][0].pt + cv::Point2f(1280, 0);
+			// cv::circle(point_show, lpt, 5, randcolor);
+			// cv::circle(point_show, rpt, 5, randcolor);
+			// cv::line(point_show, lpt, rpt, randcolor);
+			// cv::imshow("point_show", point_show);
+			// cv::waitKey();
 			for (; iter->first >= minOfEigenVec_;) {
 				id = iter->second;
 				if (nodesList_[id].type == FeatureType::Line_){ iter++; continue; };
@@ -903,12 +941,22 @@ void PairwiseLineMatching::MatchingResultFromPrincipalEigenvector_(
 			continue;
 			
 		}
+		std::cout << "match type: line\n";
 		unsigned int idLeft1 = nodesList_[id].leftLineID;
 		unsigned int idRight1 = nodesList_[id].rightLineID;
 		matchRet1.push_back(idLeft1);
 		matchRet1.push_back(idRight1);
 		matchScore1 += iter->first;
 		eigenMap_.erase(iter++);
+		cv::Point2f lspt(linesInLeft[idLeft1][0].startPointX, linesInLeft[idLeft1][0].startPointY);
+		cv::Point2f lept(linesInLeft[idLeft1][0].endPointX, linesInLeft[idLeft1][0].endPointY);
+		cv::Point2f rspt(linesInRight[idRight1][0].startPointX + 1280, linesInRight[idRight1][0].startPointY);
+		cv::Point2f rept(linesInRight[idRight1][0].endPointX + 1280, linesInRight[idRight1][0].endPointY);
+		// cv::line(line_show, lspt, lept, randcolor, 2);
+		// cv::line(line_show, rspt, rept, randcolor, 2);
+		// cv::line(line_show, lspt, rspt, tergeo::visualodometry::randColor(), 2);
+		// cv::imshow("line_show", line_show);
+		// cv::waitKey();
 		//remove all potential assignments in conflict with top matched line pair
 		double xe_xsLeft = linesInLeft[idLeft1][0].endPointX - linesInLeft[idLeft1][0].startPointX;
 		double ye_ysLeft = linesInLeft[idLeft1][0].endPointY - linesInLeft[idLeft1][0].startPointY;
@@ -960,5 +1008,112 @@ void PairwiseLineMatching::MatchingResultFromPrincipalEigenvector_(
 		}
 	} //end while(stillLoop)
 	matchResult = matchRet1;
+	
+
 	cout << "matchRet1.size=" << matchRet1.size() << ", minOfEigenVec_= " << minOfEigenVec_ << endl;
+}
+
+
+//根据光流角度建立二维map，设置阈值聚类，筛除离群值
+void PairwiseLineMatching::consistencyCheck(
+	const ScaleLines &linesInLeft, const ScalePoints &leftPt, const ScaleLines &linesInRight, const ScalePoints &rightPt, 
+	std::vector<int> &matchResult, std::vector<cv::DMatch> &pt_matchs) {
+	// int lmatch_size = matchResult.size() / 2;
+	// int ptmatch_size = pt_matchs.size();
+	// //划分匹配光流空间
+	// double an_resolution = 10;
+	// double dis_resolution = 900;//对应30个像素
+	// //       角度           距离                       索引            真实角度 真实距离
+	// std::map<int, std::map<int, std::vector<std::pair<int, std::pair<double, double>>>>> match_map = {};
+	// typedef std::pair<int, std::pair<double, double>> match_info;
+	// for (size_t i = 0; i < ptmatch_size; ++i) {
+	// 	int left_id = pt_matchs[i].queryIdx;
+	// 	int right_id = pt_matchs[i].queryIdx;
+	// 	const cv::Point2f &lpt =  leftPt.points[left_id][0].pt;
+	// 	const cv::Point2f &rpt =  rightPt.points[left_id][0].pt;
+	// 	double dx = rpt.x - lpt.x;
+	// 	double dy = rpt.y - lpt.y;
+	// 	double length2 = (dx * dx + dx * dy) / dis_resolution;
+	// 	double angle = (std::atan2(dy, dx) / M_PI * 180) / an_resolution;
+	// 	match_map[angle][length2].push_back(match_info(i, std::make_pair(angle, length2)));
+	// }
+	// int max = 0;
+	// auto _ait = match_map.end();
+	// auto _dit = _ait->second.end();
+	// for (auto ait = match_map.begin(); ait!= match_map.end(); ++ait) {
+	// 	for (auto dit = ait->second.begin(); dit!= ait->second.end(); ++dit) {
+	// 		if (max < dit->second.size()) {
+	// 			max = dit->second.size();
+	// 			_ait = ait;
+	// 			_dit = dit;
+	// 		}
+	// 	}
+	// }
+	// //to do大尺度点删除比较近的，避免这里分类比较近
+	// //离群点正好在栅格中心，除以八
+	// if (max > ptmatch_size / 4) {
+	// 	/* code */
+	// }
+    
+	//to do 还没做线段的检查
+	int lmatch_size = matchResult.size() / 2;
+	int ptmatch_size = pt_matchs.size();
+	//划分匹配光流空间
+	double mean_dis = 0;
+	double mean_ang = 0;//对应30个像素
+	double dis;
+	// double ang;
+	std::vector<double> dis_vec = {};
+	std::vector<double> angle_vec = {};
+	for (size_t i = 0; i < ptmatch_size; ++i) {
+		int left_id = pt_matchs[i].queryIdx;
+		int right_id = pt_matchs[i].trainIdx;
+		const cv::Point2f &lpt =  leftPt.points[left_id][0].pt;
+		const cv::Point2f &rpt =  rightPt.points[right_id][0].pt;
+		double dx = rpt.x - lpt.x;
+		double dy = rpt.y - lpt.y;
+		dis = std::sqrt(dx * dx + dy * dy);
+		// ang = std::atan2(dy, dx) / M_PI * 180;
+		dis_vec.push_back(dis);
+		// angle_vec.push_back(ang);
+		mean_dis += dis;
+		// mean_ang += ang;
+
+	}
+	// mean_ang /= ptmatch_size;
+	mean_dis /= ptmatch_size;
+	//随机分布，假设检验去除
+	std::vector<double> dis_diff_vec = {};
+	// std::vector<double> angle_diff_vec = {};
+	double D_RMSE = 0;
+	// double AN_RMSE = 0;
+	for (size_t i = 0; i < ptmatch_size; ++i) {
+		double dis_diff = (dis_vec[i] - mean_dis) * (dis_vec[i] - mean_dis);
+		// double ang_diff = (angle_vec[i] - mean_ang) * (angle_vec[i] - mean_ang);
+		dis_diff_vec.push_back(dis_diff);
+		// angle_diff_vec.push_back(ang_diff);
+		D_RMSE += dis_diff;
+		// AN_RMSE += ang_diff;
+	}
+	D_RMSE /= (ptmatch_size - 1);
+	// AN_RMSE /= (ptmatch_size - 1);
+	//角度用全局偏移量判断 to do
+	//三倍中误差
+	if (D_RMSE > 900) {
+		pt_matchs.clear();
+		return;
+	}
+	// if (D_RMSE > 30 || AN_RMSE > 10) {
+	// 	pt_matchs.clear();
+	// 	return;
+	// }
+	//这里要用int，因为size_t下(0 - 1)为正数
+	for (int i = ptmatch_size - 1; i >= 0; --i) {
+		// if (dis_diff_vec[i] > 9 * D_RMSE || angle_diff_vec[i] > 9 * AN_RMSE) {
+		// 	pt_matchs.erase(pt_matchs.begin() + i);
+		// }
+		if (dis_diff_vec[i] > 9 * D_RMSE) {
+			pt_matchs.erase(pt_matchs.begin() + i);
+		}
+	}
 }

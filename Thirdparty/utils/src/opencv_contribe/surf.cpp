@@ -870,6 +870,307 @@ struct SURFInvoker : ParallelLoopBody
 };
 
 
+struct SURFFIXEDInvoker : ParallelLoopBody
+{
+    enum { ORI_RADIUS = 6, ORI_WIN = 60, PATCH_SZ = 20 };
+
+    SURFFIXEDInvoker( const Mat& _img, const Mat& _sum,
+                 std::vector<KeyPoint>& _keypoints, Mat& _descriptors,
+                 bool _extended, bool _upright )
+    {
+        keypoints = &_keypoints;
+        descriptors = &_descriptors;
+        img = &_img;
+        sum = &_sum;
+        extended = _extended;
+        upright = _upright;
+
+        // Simple bound for number of grid points in circle of radius ORI_RADIUS
+        const int nOriSampleBound = (2*ORI_RADIUS+1)*(2*ORI_RADIUS+1);
+
+        // Allocate arrays
+        apt.resize(nOriSampleBound);
+        aptw.resize(nOriSampleBound);
+        DW.resize(PATCH_SZ*PATCH_SZ);
+
+        /* Coordinates and weights of samples used to calculate orientation */
+        Mat G_ori = getGaussianKernel( 2*ORI_RADIUS+1, SURF_ORI_SIGMA, CV_32F );
+        nOriSamples = 0;
+        for( int i = -ORI_RADIUS; i <= ORI_RADIUS; i++ )
+        {
+            for( int j = -ORI_RADIUS; j <= ORI_RADIUS; j++ )
+            {
+                if( i*i + j*j <= ORI_RADIUS*ORI_RADIUS )
+                {
+                    apt[nOriSamples] = Point(i,j);
+                    aptw[nOriSamples++] = G_ori.at<float>(i+ORI_RADIUS,0) * G_ori.at<float>(j+ORI_RADIUS,0);
+                }
+            }
+        }
+        CV_Assert( nOriSamples <= nOriSampleBound );
+
+        /* Gaussian used to weight descriptor samples */
+        Mat G_desc = getGaussianKernel( PATCH_SZ, SURF_DESC_SIGMA, CV_32F );
+        for( int i = 0; i < PATCH_SZ; i++ )
+        {
+            for( int j = 0; j < PATCH_SZ; j++ )
+                DW[i*PATCH_SZ+j] = G_desc.at<float>(i,0) * G_desc.at<float>(j,0);
+        }
+    }
+
+    void operator()(const Range& range) const CV_OVERRIDE
+    {
+        /* X and Y gradient wavelet data */
+        const int NX=2, NY=2;
+        const int dx_s[NX][5] = {{0, 0, 2, 4, -1}, {2, 0, 4, 4, 1}};
+        const int dy_s[NY][5] = {{0, 0, 4, 2, 1}, {0, 2, 4, 4, -1}};
+
+        // Optimisation is better using nOriSampleBound than nOriSamples for
+        // array lengths.  Maybe because it is a constant known at compile time
+        const int nOriSampleBound =(2*ORI_RADIUS+1)*(2*ORI_RADIUS+1);
+
+        float X[nOriSampleBound], Y[nOriSampleBound], angle[nOriSampleBound];
+        uchar PATCH[PATCH_SZ+1][PATCH_SZ+1];
+        float DX[PATCH_SZ][PATCH_SZ], DY[PATCH_SZ][PATCH_SZ];
+        Mat _patch(PATCH_SZ+1, PATCH_SZ+1, CV_8U, PATCH);
+
+        int dsize = extended ? 128 : 64;
+
+        int k, k1 = range.start, k2 = range.end;
+        float maxSize = 0;
+        for( k = k1; k < k2; k++ )
+        {
+            maxSize = std::max(maxSize, (*keypoints)[k].size);
+        }
+        int imaxSize = std::max(cvCeil((PATCH_SZ+1)*maxSize*1.2f/9.0f), 1);
+        cv::AutoBuffer<uchar> winbuf(imaxSize*imaxSize);
+
+        for( k = k1; k < k2; k++ )
+        {
+            int i, j, kk, nangle;
+            float* vec;
+            SurfHF dx_t[NX], dy_t[NY];
+            KeyPoint& kp = (*keypoints)[k];
+            float size = kp.size;
+            Point2f center = kp.pt;
+            /* The sampling intervals and wavelet sized for selecting an orientation
+             and building the keypoint descriptor are defined relative to 's' */
+            float s = size*1.2f/9.0f;
+            /* To find the dominant orientation, the gradients in x and y are
+             sampled in a circle of radius 6s using wavelets of size 4s.
+             We ensure the gradient wavelet size is even to ensure the
+             wavelet pattern is balanced and symmetric around its center */
+            int grad_wav_size = 2*cvRound( 2*s );
+            if( sum->rows < grad_wav_size || sum->cols < grad_wav_size )
+            {
+                /* when grad_wav_size is too big,
+                 * the sampling of gradient will be meaningless
+                 * mark keypoint for deletion. */
+                kp.size = -1;
+                continue;
+            }
+
+            float descriptor_dir = kp.angle;
+            // kp.angle = descriptor_dir;
+            if( !descriptors || !descriptors->data )
+                continue;
+
+            /* Extract a window of pixels around the keypoint of size 20s */
+            int win_size = (int)((PATCH_SZ+1)*s);
+            CV_Assert( imaxSize >= win_size );
+            //3.2.0中没有data方法，改成通用的
+            // Mat win(win_size, win_size, CV_8U, winbuf.data());
+            Mat win(win_size, win_size, CV_8U, (uchar*)winbuf);
+
+            if( !upright )
+            {
+                descriptor_dir *= (float)(CV_PI/180);
+                float sin_dir = -std::sin(descriptor_dir);
+                float cos_dir =  std::cos(descriptor_dir);
+
+                /* Subpixel interpolation version (slower). Subpixel not required since
+                the pixels will all get averaged when we scale down to 20 pixels */
+                /*
+                float w[] = { cos_dir, sin_dir, center.x,
+                -sin_dir, cos_dir , center.y };
+                CvMat W = cvMat(2, 3, CV_32F, w);
+                cvGetQuadrangleSubPix( img, &win, &W );
+                */
+
+                float win_offset = -(float)(win_size-1)/2;
+                float start_x = center.x + win_offset*cos_dir + win_offset*sin_dir;
+                float start_y = center.y - win_offset*sin_dir + win_offset*cos_dir;
+                uchar* WIN = win.data;
+#if 0
+                // Nearest neighbour version (faster)
+                for( i = 0; i < win_size; i++, start_x += sin_dir, start_y += cos_dir )
+                {
+                    float pixel_x = start_x;
+                    float pixel_y = start_y;
+                    for( j = 0; j < win_size; j++, pixel_x += cos_dir, pixel_y -= sin_dir )
+                    {
+                        int x = std::min(std::max(cvRound(pixel_x), 0), img->cols-1);
+                        int y = std::min(std::max(cvRound(pixel_y), 0), img->rows-1);
+                        WIN[i*win_size + j] = img->at<uchar>(y, x);
+                    }
+                }
+#else
+                int ncols1 = img->cols-1, nrows1 = img->rows-1;
+                size_t imgstep = img->step;
+                for( i = 0; i < win_size; i++, start_x += sin_dir, start_y += cos_dir )
+                {
+                    double pixel_x = start_x;
+                    double pixel_y = start_y;
+                    for( j = 0; j < win_size; j++, pixel_x += cos_dir, pixel_y -= sin_dir )
+                    {
+                        int ix = cvFloor(pixel_x), iy = cvFloor(pixel_y);
+                        if( (unsigned)ix < (unsigned)ncols1 &&
+                            (unsigned)iy < (unsigned)nrows1 )
+                        {
+                            float a = (float)(pixel_x - ix), b = (float)(pixel_y - iy);
+                            const uchar* imgptr = &img->at<uchar>(iy, ix);
+                            WIN[i*win_size + j] = (uchar)
+                                cvRound(imgptr[0]*(1.f - a)*(1.f - b) +
+                                        imgptr[1]*a*(1.f - b) +
+                                        imgptr[imgstep]*(1.f - a)*b +
+                                        imgptr[imgstep+1]*a*b);
+                        }
+                        else
+                        {
+                            int x = std::min(std::max(cvRound(pixel_x), 0), ncols1);
+                            int y = std::min(std::max(cvRound(pixel_y), 0), nrows1);
+                            WIN[i*win_size + j] = img->at<uchar>(y, x);
+                        }
+                    }
+                }
+#endif
+            }
+            else
+            {
+                // extract rect - slightly optimized version of the code above
+                // TODO: find faster code, as this is simply an extract rect operation,
+                //       e.g. by using cvGetSubRect, problem is the border processing
+                // descriptor_dir == 90 grad
+                // sin_dir == 1
+                // cos_dir == 0
+
+                float win_offset = -(float)(win_size-1)/2;
+                int start_x = cvRound(center.x + win_offset);
+                int start_y = cvRound(center.y - win_offset);
+                uchar* WIN = win.data;
+                for( i = 0; i < win_size; i++, start_x++ )
+                {
+                    int pixel_x = start_x;
+                    int pixel_y = start_y;
+                    for( j = 0; j < win_size; j++, pixel_y-- )
+                    {
+                        int x = MAX( pixel_x, 0 );
+                        int y = MAX( pixel_y, 0 );
+                        x = MIN( x, img->cols-1 );
+                        y = MIN( y, img->rows-1 );
+                        WIN[i*win_size + j] = img->at<uchar>(y, x);
+                    }
+                }
+            }
+            // Scale the window to size PATCH_SZ so each pixel's size is s. This
+            // makes calculating the gradients with wavelets of size 2s easy
+            resize(win, _patch, _patch.size(), 0, 0, INTER_AREA);
+
+            // Calculate gradients in x and y with wavelets of size 2s
+            for( i = 0; i < PATCH_SZ; i++ )
+                for( j = 0; j < PATCH_SZ; j++ )
+                {
+                    float dw = DW[i*PATCH_SZ + j];
+                    float vx = (PATCH[i][j+1] - PATCH[i][j] + PATCH[i+1][j+1] - PATCH[i+1][j])*dw;
+                    float vy = (PATCH[i+1][j] - PATCH[i][j] + PATCH[i+1][j+1] - PATCH[i][j+1])*dw;
+                    DX[i][j] = vx;
+                    DY[i][j] = vy;
+                }
+
+            // Construct the descriptor
+            vec = descriptors->ptr<float>(k);
+            for( kk = 0; kk < dsize; kk++ )
+                vec[kk] = 0;
+            double square_mag = 0;
+            if( extended )
+            {
+                // 128-bin descriptor
+                for( i = 0; i < 4; i++ )
+                    for( j = 0; j < 4; j++ )
+                    {
+                        for(int y = i*5; y < i*5+5; y++ )
+                        {
+                            for(int x = j*5; x < j*5+5; x++ )
+                            {
+                                float tx = DX[y][x], ty = DY[y][x];
+                                if( ty >= 0 )
+                                {
+                                    vec[0] += tx;
+                                    vec[1] += (float)fabs(tx);
+                                } else {
+                                    vec[2] += tx;
+                                    vec[3] += (float)fabs(tx);
+                                }
+                                if ( tx >= 0 )
+                                {
+                                    vec[4] += ty;
+                                    vec[5] += (float)fabs(ty);
+                                } else {
+                                    vec[6] += ty;
+                                    vec[7] += (float)fabs(ty);
+                                }
+                            }
+                        }
+                        for( kk = 0; kk < 8; kk++ )
+                            square_mag += vec[kk]*vec[kk];
+                        vec += 8;
+                    }
+            }
+            else
+            {
+                // 64-bin descriptor
+                for( i = 0; i < 4; i++ )
+                    for( j = 0; j < 4; j++ )
+                    {
+                        for(int y = i*5; y < i*5+5; y++ )
+                        {
+                            for(int x = j*5; x < j*5+5; x++ )
+                            {
+                                float tx = DX[y][x], ty = DY[y][x];
+                                vec[0] += tx; vec[1] += ty;
+                                vec[2] += (float)fabs(tx); vec[3] += (float)fabs(ty);
+                            }
+                        }
+                        for( kk = 0; kk < 4; kk++ )
+                            square_mag += vec[kk]*vec[kk];
+                        vec+=4;
+                    }
+            }
+
+            // unit vector is essential for contrast invariance
+            vec = descriptors->ptr<float>(k);
+            float scale = (float)(1./(std::sqrt(square_mag) + FLT_EPSILON));
+            for( kk = 0; kk < dsize; kk++ )
+                vec[kk] *= scale;
+        }
+    }
+
+    // Parameters
+    const Mat* img;
+    const Mat* sum;
+    std::vector<KeyPoint>* keypoints;
+    Mat* descriptors;
+    bool extended;
+    bool upright;
+
+    // Pre-calculated values
+    int nOriSamples;
+    std::vector<Point> apt;
+    std::vector<float> aptw;
+    std::vector<float> DW;
+};
+
+
 SURF_Impl::SURF_Impl(double _threshold, int _nOctaves, int _nOctaveLayers, bool _extended, bool _upright)
 {
     hessianThreshold = _threshold;
@@ -1016,9 +1317,93 @@ void SURF_Impl::detectAndCompute(InputArray _img, InputArray _mask,
     }
 }
 
+
+void SURF_Impl::computeFixedAngle(InputArray _img, InputArray _mask,
+                      CV_OUT std::vector<KeyPoint>& keypoints,
+                      OutputArray _descriptors,
+                      bool useProvidedKeypoints)
+{
+    int imgtype = _img.type(), imgcn = CV_MAT_CN(imgtype);
+    bool doDescriptors = _descriptors.needed();
+
+    CV_Assert(!_img.empty() && CV_MAT_DEPTH(imgtype) == CV_8U && (imgcn == 1 || imgcn == 3 || imgcn == 4));
+    CV_Assert(_descriptors.needed() || !useProvidedKeypoints);
+
+    Mat img = _img.getMat(), mask = _mask.getMat(), mask1, sum, msum;
+
+    if( imgcn > 1 )
+        cvtColor(img, img, COLOR_BGR2GRAY);
+
+    CV_Assert(mask.empty() || (mask.type() == CV_8U && mask.size() == img.size()));
+    CV_Assert(hessianThreshold >= 0);
+    CV_Assert(nOctaves > 0);
+    CV_Assert(nOctaveLayers > 0);
+
+    integral(img, sum, CV_32S);
+
+    int i, j, N = (int)keypoints.size();
+    if( N > 0 )
+    {
+        Mat descriptors;
+        bool _1d = false;
+        int dcols = extended ? 128 : 64;
+        size_t dsize = dcols*sizeof(float);
+
+        if( doDescriptors )
+        {
+            _1d = _descriptors.kind() == _InputArray::STD_VECTOR && _descriptors.type() == CV_32F;
+            if( _1d )
+            {
+                _descriptors.create(N*dcols, 1, CV_32F);
+                descriptors = _descriptors.getMat().reshape(1, N);
+            }
+            else
+            {
+                _descriptors.create(N, dcols, CV_32F);
+                descriptors = _descriptors.getMat();
+            }
+        }
+
+        // we call SURFInvoker in any case, even if we do not need descriptors,
+        // since it computes orientation of each feature.
+        parallel_for_(Range(0, N), SURFFIXEDInvoker(img, sum, keypoints, descriptors, extended, upright) );
+
+        // remove keypoints that were marked for deletion
+        for( i = j = 0; i < N; i++ )
+        {
+            if( keypoints[i].size > 0 )
+            {
+                if( i > j )
+                {
+                    keypoints[j] = keypoints[i];
+                    if( doDescriptors )
+                        memcpy( descriptors.ptr(j), descriptors.ptr(i), dsize);
+                }
+                j++;
+            }
+        }
+        if( N > j )
+        {
+            N = j;
+            keypoints.resize(N);
+            if( doDescriptors )
+            {
+                Mat d = descriptors.rowRange(0, N);
+                if( _1d )
+                    d = d.reshape(1, N*dcols);
+                d.copyTo(_descriptors);
+            }
+        }
+    }
+}
+
 Ptr<SURF> SURF::create(double _threshold, int _nOctaves, int _nOctaveLayers, bool _extended, bool _upright)
 {
     return makePtr<SURF_Impl>(_threshold, _nOctaves, _nOctaveLayers, _extended, _upright);
+}
+
+void SURF_Impl::compute( InputArray image,  CV_OUT CV_IN_OUT std::vector<KeyPoint>& keypoints, OutputArray descriptors ) {
+    computeFixedAngle(image, cv::noArray(), keypoints, descriptors, true);
 }
 
 

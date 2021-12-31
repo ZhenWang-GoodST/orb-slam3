@@ -28,17 +28,21 @@ public:
 		NearestNeighbor=0, //the nearest neighbor is taken as matching
 		NNDR=1//nearest/next ratio
 	};
-  /*This function is used to detect lines from multi-scale images.*/
+	/*This function is used to detect lines from multi-scale images.*/
 	int OctaveKeyLines(const cv::Mat & image_, ScaleLines &keyLines);
 	int OctaveKeyLines(const cv::Mat & image_, ScaleLines &keyLines, LSDDetectorC::LSDOptions opts);
-  int GetLineDescriptor(const cv::Mat & image,
+	int GetLineDescriptor(const cv::Mat & image,
   		ScaleLines &keyLines, LSDDetectorC::LSDOptions opts = LSDDetectorC::LSDOptions(), int lineMode = 0);
-  int MatchLineByDescriptor(ScaleLines &keyLinesLeft, ScaleLines &keyLinesRight,
+	int MatchLineByDescriptor(ScaleLines &keyLinesLeft, ScaleLines &keyLinesRight,
   		std::vector<short> &matchLeft, std::vector<short> &matchRight,
   		int criteria=NNDR);
-  float LowestThreshold;//global threshold for line descriptor distance, default is 0.35
-  float NNDRThreshold;//the NNDR threshold for line descriptor distance, default is 0.6
+	/*Compute the line descriptor of input line set. This function should be called
+		*after OctaveKeyLines() function; */
+	int ComputeLBD_(ScaleLines &keyLines);
+	float LowestThreshold;//global threshold for line descriptor distance, default is 0.35
+	float NNDRThreshold;//the NNDR threshold for line descriptor distance, default is 0.6
 	unsigned int  numOfOctave_;//the number of image octave
+	cv::Mat line_mask;
 private:
 
 	void sample(float *igray,float *ogray, float factor, int width, int height)
@@ -63,9 +67,6 @@ private:
             ogray[j*swidth + i] = igray[(int)((float) j * factor) * width + (int) ((float) i*factor)];
 
     }
-	/*Compute the line descriptor of input line set. This function should be called
-	 *after OctaveKeyLines() function; */
-	int ComputeLBD_(ScaleLines &keyLines);
 	/*For each octave of image, we define an EDLineDetector, because we can get gradient images (dxImg, dyImg, gImg)
 	 *from the EDLineDetector class without extra computation cost. Another reason is that, if we use
 	 *a single EDLineDetector to detect lines in different octave of images, then we need to allocate and release

@@ -3,6 +3,17 @@
 namespace tergeo {
 namespace visualodometry {
 
+cv::Scalar randColor() {
+    return cv::Scalar(128 + rand() % 128, 128 + rand() % 128, 128 + rand() % 128);
+}
+
+cv::Scalar randColor(uchar minvalue) {
+    return cv::Scalar(minvalue + rand() % (255 - minvalue), 128 + rand() % (255 - minvalue), 128 + rand() % (255 - minvalue));
+}
+
+cv::Rect getRect(const cv::Point &pt, int size) {
+    return cv::Rect(pt.x - size, pt.y - size, size * 2, size * 2);
+}
 cv::Mat stretch(const cv::Mat& image,int minvalue, int maxvalue) {
     // Histogram1D h;
 
@@ -185,8 +196,8 @@ void singleMatch(const cv::Mat &image,
 }
 
 
-Match baseTemplate(const cv::Mat &image, 
-        const cv::Mat &templ, cv::Mat &TMatched_image, double initial_angle) {
+Match baseTemplate(const cv::Mat &image, const cv::Mat &templ, cv::Mat &TMatched_image, 
+        double initial_angle, double search_interval, int search_range) {
     
     auto cmp = [](Match l, Match r) { return l._coff < r._coff;};
     std::priority_queue<
@@ -215,9 +226,9 @@ Match baseTemplate(const cv::Mat &image,
     // cv::cvtColor(templ, match_templ, CV_BGR2GRAY);
     Match best_match;
     best_match._coff = -2;
-    for (double i = -5; i < 5; i=i + 1) {
+    for (double i = -search_range; i <= search_range; i=i + 1) {
         cv::Mat match_image, rotate_template, image_plus, mask;
-        double template_angle = - initial_angle + i;
+        double template_angle = - initial_angle + i * search_interval;
         cv::Mat tmp_match_image = cv::Mat::zeros(dst_size, image.type());
         image.copyTo(tmp_match_image(rect1));
         
@@ -248,12 +259,12 @@ Match baseTemplate(const cv::Mat &image,
         Match match(Match(maxLoc, - template_angle, maxVal));
         cv::Point2f left_center = match._position + cv::Point2f(cols / 2, rows / 2);
         left_center = left_center - cv::Point2f(match_image.cols / 2, match_image.rows / 2);
-        match.setTR( - match._angle / 180 * M_PI, left_center.x, left_center.y);
+        match.setTR( - match._angle, left_center.x, left_center.y);
         match._coff_mat = result;
-    Match match_;
-    if (best_match._coff < match._coff) {
-        best_match = match;
-    }
+        Match match_;
+        if (best_match._coff < match._coff) {
+            best_match = match;
+        }
     
         // match_queue.push(match_);
         
@@ -343,10 +354,20 @@ void drawMatchPts(
         cv::Rect rect2(cv::Point2f(left.cols, 0), left.size());
         left.copyTo(show_image(rect1));
         right.copyTo(show_image(rect2));
-        cv::cvtColor(show_image, show_image, cv::COLOR_GRAY2BGR);
+        if (show_image.type() != CV_8UC3) {
+            cv::cvtColor(show_image, show_image, cv::COLOR_GRAY2BGR);
+        }
+        
     }
     // std::cout << show_image.size() << "\n";
     int size = 5;
+    for (auto const &pt : p1) {
+        cv::circle(show_image, pt.pt, 5, green);
+    }
+    for (auto const &pt : p2) {
+        cv::circle(show_image, pt.pt + cv::Point2f(left.cols, 0), 5, green);
+    }
+    
     for (int i = 0; i < pt_size; ++i) {
         if (indices[i] < 0) continue;
         cv::Point2f pt1 = p1[i].pt;

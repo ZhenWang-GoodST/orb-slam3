@@ -42,6 +42,7 @@ extern int debugmode;
 extern int quant;
 extern std::map<std::string, std::string> paraMap;
 extern nlohmann::json cfg;
+using namespace tergeo::visualodometry;
 
 namespace ORB_SLAM3
 {
@@ -81,6 +82,9 @@ public:
 
     // Extract Line using LSD on the image
     void ExtractLine(const cv::Mat &im, double quant, double log_eps);
+
+    // compute Line descriptor using LBD on the image
+    void ComputeLine(const cv::Mat &im, double quant, double log_eps);
 
     // Compute Bag of Words representation.
     void ComputeBoW();
@@ -184,7 +188,25 @@ public:
     // std::vector<KeyLine> mvKeyLines = {};
     std::vector<cv::line_descriptor::KeyLine> mvKeyLines;
 
-    ScaleLines scalelines;
+    cv::Ptr<cv::Feature2D> feature_detector;
+
+    LineDescriptor lineDesc;
+
+    cv::Mat line_mask;
+
+    // ScalePoints scale_pts;
+
+    cv::Mat scale_descriptors;
+
+    //记录落在栅格内的线段
+    std::vector<std::vector<std::set<ScaleLines>>> block = {};
+    std::vector<std::vector<std::set<ScaleLines>>> lines_in_grid = {};
+    
+    //记录局部主方向， 或者旋转方向
+    std::vector<std::vector<std::set<ScaleLines>>> rotate_anles_in_grid = {};
+
+    PLStructure pl_structure;
+    // ScaleLines scalelines;
 
     // Number of KeyPoints.
     int N;
@@ -194,6 +216,9 @@ public:
     // In the RGB-D case, RGB images can be distorted.
     std::vector<cv::KeyPoint> mvKeys, mvKeysRight;
     std::vector<cv::KeyPoint> mvKeysUn;
+
+    // mask out points
+    std::vector<cv::KeyPoint> mask_mvkeysun;
 
     // Corresponding stereo coordinate and depth for each keypoint.
     std::vector<MapPoint*> mvpMapPoints;

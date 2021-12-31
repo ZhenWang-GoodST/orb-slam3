@@ -25,6 +25,7 @@
 #include<opencv2/features2d/features2d.hpp>
 
 #include "Thirdparty/DBoW2/DBoW2/FeatureVector.h"
+#include "plmatcher.h"
 
 #include<stdint-gcc.h>
 
@@ -2535,6 +2536,160 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, KeyFrame *pKF, const set
 
     return nmatches;
 }
+
+int ORBmatcher::SearchByTemplateAffine(Frame* frame, const std::vector<cv::Point2f> &pts, std::vector<int> &match_indices, int dis_thresh) {
+    int count = 0;
+    match_indices.clear();
+    match_indices = std::vector<int>(pts.size(), -1);
+    int block_h = frame->pl_structure.block_h;
+    int block_w = frame->pl_structure.block_w;
+    int rows = frame->pl_structure.rows;
+    int cols = frame->pl_structure.cols;
+    const auto &_keypoints = frame->pl_structure.scale_pts.keypoints;
+    static const std::vector<std::pair<int, int>> block_offset = {{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 0}, {0, 1}, {1, -1}, {1, 0}, {1, 1}};
+    for (size_t ptId = 0; ptId < pts.size(); ++ptId) {
+        const auto & pt = pts[ptId];
+        int col = pt.x / block_w;
+        int row = pt.y / block_h;
+        typedef std::pair<int, double> dis_pair;
+        auto cmp = [](dis_pair l, dis_pair r) {return l.second > r.second;};
+        std::priority_queue<dis_pair, std::vector<dis_pair>, decltype(cmp)> dis_pri(cmp);
+        for (size_t block_i = 0; block_i < 9; ++block_i) {
+            int col_i = col + block_offset[block_i].first;
+            int row_i = row + block_offset[block_i].second;
+            if (col_i < 0 || col_i >= cols || row_i < 0 || row_i >= rows) continue;
+            auto const &right_pts = frame->pl_structure.block[row_i][col_i].low_level_pts;
+            for (size_t i = 0; i < right_pts.size(); ++i) {
+                auto const &right_pt = frame->pl_structure.scale_pts.keypoints[right_pts[i]].pt;
+                double dx = std::abs(right_pt.x - pt.x);
+                double dy = std::abs(right_pt.y - pt.y);
+                if (dx > dis_thresh || dy > dis_thresh) continue;
+                //to do
+                dis_pri.push(dis_pair(right_pts[i], dx + dy));
+            }
+        }
+        if (dis_pri.empty()) continue;
+        match_indices[ptId] = dis_pri.top().first;
+        count++;
+    }
+    return count;
+}
+
+
+int ORBmatcher::SearchByLocalAffine(Frame* frame1, Frame* frame2, const std::vector<cv::KeyPoint> &pts, std::vector<int> &match_indices, int dis_thresh) {
+    // std::vectr
+    int nmatches=0;
+    int best_match = 0;
+    // vnMatches12 = vector<int>(frame1.mvKeysUn.size(),-1);
+
+    vector<int> rotHist[HISTO_LENGTH];
+    for(int i=0;i<HISTO_LENGTH;i++)
+        rotHist[i].reserve(500);
+    const float factor = 1.0f/HISTO_LENGTH;
+
+    const int left_size = frame1->pl_structure.scale_pts.keypoints.size();
+    const int right_size = frame2->pl_structure.scale_pts.keypoints.size();
+    int match_size = match_indices.size();
+    vector<int> vMatchedDistance(right_size,INT_MAX);
+    vector<int> vnMatches21(right_size,-1);
+    
+    // frame1->pl_structure.isolate_pts.clear();
+    // frame2->pl_structure.isolate_pts.clear();
+    // frame1->pl_structure.isolate_pts = std::vector<int>(left_size, -1);
+    // frame2->pl_structure.isolate_pts = std::vector<int>(right_size, -1);
+    // for (size_t i = 0; i < match_size; ++i) {
+    //     if (match_indices[i] > -2) continue;
+    //     frame1->pl_structure.isolate_pts[i] = 1;
+    //     frame2->pl_structure.isolate_pts[match_indices[i]] = 1;
+    // }
+    int isolated_count = 0;
+    for (size_t i = 0; i < left_size; ++i) {
+        if (frame1->pl_structure.isolate_pts[i] < 0) continue;
+        frame1->pl_structure.isolate_pts[i] = isolated_count++;
+    }
+    isolated_count = 0;
+    for (size_t i = 0; i < right_size; ++i) {
+        if (frame2->pl_structure.isolate_pts[i] < 0) continue;
+        frame2->pl_structure.isolate_pts[i] = isolated_count++;
+    }
+    PLMather plmatcher;
+    plmatcher.calculateAngleInInitilization(&(frame1->pl_structure), &(frame2->pl_structure));
+    frame1->pl_structure.computeDescriptor(frame1->feature_detector);
+    frame2->pl_structure.computeDescriptor(frame2->feature_detector);
+    const auto &_isloted_pts1 = frame1->pl_structure.isolate_pts;
+    const auto &_isloted_pts2 = frame2->pl_structure.isolate_pts;
+    for (size_t i = 0; i < match_indices.size(); ++i) {
+        // int id1 = _isloted_pts[i];
+        // int id2 = match_indices[id1];
+        if (match_indices[i] > -2) continue;
+        auto const &pt = frame1->pl_structure.scale_pts.keypoints[i].pt;
+        cv::Point2f predict_pt = frame1->pl_structure.transformPoint(pt);
+        std::vector<int> vIndices2 = frame2->pl_structure.GetFeaturesInArea(predict_pt.x, predict_pt.y, 30, 0, 0, match_indices);
+
+        if(vIndices2.empty())
+            continue;
+
+        cv::Mat d1 = frame1->pl_structure.scale_pts.descriptor.row(_isloted_pts1[i]);
+
+        double bestDist = std::numeric_limits<double>::max();
+        double bestDist2 = std::numeric_limits<double>::max();
+        int bestIdx2 = -1;
+
+        for(int j = 0; j < vIndices2.size(); ++j) {
+            const size_t &pt_id = vIndices2[j];
+            if (_isloted_pts2[vIndices2[j]] < 0) continue;
+            cv::Mat d2 = frame2->pl_structure.scale_pts.descriptor.row(_isloted_pts2[vIndices2[j]]);
+
+            // int dist = DescriptorDistance(d1,d2);
+            double dist = frame1->pl_structure.computeDistance(d1, d2);
+            
+
+            if(vMatchedDistance[pt_id]<=dist)
+                continue;
+
+            if(dist<bestDist)
+            {
+                bestDist2=bestDist;
+                bestDist=dist;
+                bestIdx2=pt_id;
+            }
+            else if(dist<bestDist2)
+            {
+                bestDist2=dist;
+            }
+        }
+
+        if(bestDist<=TH_LOW) {
+            best_match += 1;
+            if(bestDist<(float)bestDist2*mfNNratio)
+            {
+                if(vnMatches21[bestIdx2]>=0)
+                {
+                    match_indices[vnMatches21[bestIdx2]]=-1;
+                    nmatches--;
+                }
+                match_indices[i]=bestIdx2;
+                vnMatches21[bestIdx2]=i;
+                vMatchedDistance[bestIdx2]=bestDist;
+                nmatches++;
+
+                // if(mbCheckOrientation)
+                // {
+                    // float rot = F1.mvKeysUn[i1].angle-F2.mvKeysUn[bestIdx2].angle;
+                    // if(rot<0.0)
+                    //     rot+=360.0f;
+                    // int bin = round(rot*factor);
+                    // if(bin==HISTO_LENGTH)
+                    //     bin=0;
+                    // assert(bin>=0 && bin<HISTO_LENGTH);
+                    // rotHist[bin].push_back(i1);
+                // }
+            }
+        }
+    }
+    return nmatches;
+}
+
 
 void ORBmatcher::ComputeThreeMaxima(vector<int>* histo, const int L, int &ind1, int &ind2, int &ind3)
 {

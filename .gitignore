@@ -41,6 +41,8 @@ Vocabulary/ORBvoc.txt
 build/
 builddebug/
 buildrelease/
+dockerdebug/
+dockerrelease/
 
 lib/
 

@@ -79,7 +79,7 @@ Frame::Frame(const Frame &frame)
      mvRightToLeftMatch(frame.mvRightToLeftMatch), mvStereo3Dpoints(frame.mvStereo3Dpoints),
      mTlr(frame.mTlr.clone()), mRlr(frame.mRlr.clone()), mtlr(frame.mtlr.clone()), mTrl(frame.mTrl.clone()),
      mTrlx(frame.mTrlx), mTlrx(frame.mTlrx), mOwx(frame.mOwx), mRcwx(frame.mRcwx), mtcwx(frame.mtcwx), monoImage(frame.monoImage), monoShowImage(frame.monoShowImage), mvKeyLines(frame.mvKeyLines), LineN(frame.LineN),
-     scalelines(frame.scalelines)
+     pl_structure(frame.pl_structure), feature_detector(frame.feature_detector)
 {
     lineDescriptor = frame.lineDescriptor.clone();
     for(int i=0;i<FRAME_GRID_COLS;i++)
@@ -321,14 +321,60 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
 #ifdef REGISTER_TIMES
     std::chrono::steady_clock::time_point time_StartExtORB = std::chrono::steady_clock::now();
 #endif
+    pl_structure = std::move(PLStructure(5, 10, 8, this->monoImage));
     ExtractLine(undistortedGray, quant, cfg["log_eps"]);
     //腌膜掉线段点，同时可以确定POI和平面点fast阈值的分界线，相当于拿掉正态分布中间的部分
-    cv::Mat mask;
-    // for (int i = 0; i < count; i++)
-    // {
-    //     /* code */
-    // }
     
+    cv::imshow("mask", line_mask);
+    // cv::Ptr<cv::Feature2D> feature_detector;
+    double para_1 = cfg["para_1"];
+    double para_2 = cfg["para_2"];
+    double para_3 = cfg["para_3"];
+    double para_4 = cfg["para_4"];
+    if (cfg["pt_detec_type"] == 0) {
+        // feature_detector = cv::xfeatures2d::SURF::create(para_1, para_2, para_3);
+        feature_detector = cv::xfeatures2d::cv_contribe::SURF::create(para_1, para_2, para_3);
+    } else if (cfg["pt_detec_type"] == 1) {
+        feature_detector = cv::xfeatures2d::SIFT ::create(para_1, para_2, para_3, para_4);
+    } else if (cfg["pt_detec_type"] == 2) {
+        feature_detector = cv::ORB::create(para_1, para_2, para_3, para_4);
+    }
+    cv::Mat resi_im;
+    cv::Size gau_size(5, 5);
+    cv::resize(this->monoImage, resi_im, this->monoImage.size() / 2);
+    cv::GaussianBlur(resi_im, resi_im, gau_size, 2);
+    std::vector<cv::KeyPoint> key_pts = {};
+    feature_detector->detect(resi_im, key_pts, cv::noArray());
+    for (int i = 0; i < key_pts.size(); ++i) {
+        key_pts[i].size *= 2;
+        key_pts[i].pt *= 2;
+        key_pts[i].angle = 0;
+        if (key_pts[i].size < 36 * 2) {
+        //     (std::abs(key_pts[i].pt.x - 164) < 1 && std::abs(key_pts[i].pt.y - 172) < 1) ||
+        //     (std::abs(key_pts[i].pt.x - 1040) < 1 && std::abs(key_pts[i].pt.y - 136) < 1)) {
+            key_pts.erase(key_pts.begin() + i--);
+        }
+    }
+    pl_structure.scale_pts.points.resize(key_pts.size());
+    // feature_detector->detectAndCompute(this->monoImage, cv::noArray(), key_pts, pl_structure.scale_pts.descriptor, true);
+    feature_detector->compute(this->monoImage, key_pts, pl_structure.scale_pts.descriptor);
+	for (int i = 0; i < key_pts.size(); ++i) {
+        pl_structure.scale_pts.points[i].push_back(key_pts[i]);
+    }
+    // feature_detector->detectAndCompute(this->monoImage, line_mask, pl_structure.scale_pts, scale_descriptors);
+    cv::imshow("mask", line_mask);
+    for (int i = 0; i < key_pts.size(); ++i) {
+        key_pts[i].octave += 4;
+        cv::circle(this->monoShowImage, 
+        key_pts[i].pt, 
+        key_pts[i].size, 
+        cv::Vec3b(0, 255, 0));
+        cv::putText(this->monoShowImage, std::to_string(i), key_pts[i].pt, cv::HersheyFonts::FONT_HERSHEY_PLAIN, 2, cv::Scalar(0, 0, 255));
+    }
+    // pl_structure.loadData(key_pts, scalelines);
+    cv::imshow("keypoints", this->monoShowImage);
+    // cv::imwrite("/home/tonglu/VO-LOAM/github/output/right.png", this->monoShowImage);
+    // cv::waitKey();
     ExtractORB(0,undistortedGray,0,1000);
 #ifdef REGISTER_TIMES
     std::chrono::steady_clock::time_point time_EndExtORB = std::chrono::steady_clock::now();
@@ -343,7 +389,7 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
 
     // UndistortKeyPoints();
     mvKeysUn = mvKeys;
-    tergeo::visualodometry::drawKeyPts(monoShowImage, mvKeysUn, 5, cv::Scalar(0, 255, 0));
+    // tergeo::visualodometry::drawKeyPts(monoShowImage, mvKeysUn, 5, cv::Scalar(0, 255, 0));
 
     // Set no stereo information
     mvuRight = vector<float>(N,-1);
@@ -360,7 +406,10 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
     // This is done only for the first Frame (or after a change in the calibration)
     if(mbInitialComputations)
     {
+        float tmp = mDistCoef.at<float>(0);
+        mDistCoef.at<float>(0) = 0;
         ComputeImageBounds(imGray);
+        mDistCoef.at<float>(0) = tmp;
 
         mfGridElementWidthInv=static_cast<float>(FRAME_GRID_COLS)/static_cast<float>(mnMaxX-mnMinX);
         mfGridElementHeightInv=static_cast<float>(FRAME_GRID_ROWS)/static_cast<float>(mnMaxY-mnMinY);
@@ -390,7 +439,27 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
     monoRight = -1;
 
     AssignFeaturesToGrid();
-
+    int rect_width = static_cast<float>(mnMaxX-mnMinX)/static_cast<float>(FRAME_GRID_COLS);
+    int rect_height = static_cast<float>(mnMaxY-mnMinY)/static_cast<float>(FRAME_GRID_ROWS);
+    //draw pt in grids
+    for (int i = 0; i < FRAME_GRID_COLS; ++i) {
+        for (int j = 0; j < FRAME_GRID_ROWS; ++j) {
+            cv::Scalar color = randColor();
+            cv::Rect bound = cv::Rect(i * rect_width + 2, j * rect_height + 2, rect_width - 4, rect_height - 4);
+            // cv::rectangle(monoShowImage, bound, color);
+            for (int k = 0; k < mGrid[i][j].size(); k++) {
+                if (mvKeys[mGrid[i][j][k]].octave > 3) continue;
+                // cv::Rect rect = getRect(mvKeys[mGrid[i][j][k]].pt, mvKeys[mGrid[i][j][k]].octave * 3 + 2);
+                cv::Rect rect = getRect(mvKeys[mGrid[i][j][k]].pt, 3);
+                cv::rectangle(monoShowImage, rect, color);
+            }
+        }
+        
+    }
+    // cv::imshow("monoShowImage", monoShowImage);
+    // cv::waitKey();
+    
+    // pl_structure.loadData(mvKeysUn, scalelines);
     if(pPrevF)
     {
         if(!pPrevF->mVw.empty())
@@ -402,6 +471,18 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
     }
 
     mpMutexImu = new std::mutex();
+    //开启线程计算描述符
+    // std::thread computeLBDThread(lineDesc.ComputeLBD_, std::ref(scalelines));
+    lineDesc.ComputeLBD_(pl_structure.scale_lines);
+    for (auto &line_vec : pl_structure.scale_lines) {
+        for (auto &line : line_vec) {
+            line.computeElements(50);
+        }
+    }
+    key_pts.insert(key_pts.end(), mvKeys.begin(), mvKeys.end());
+    pl_structure.loadData(key_pts, pl_structure.scale_lines);
+    pl_structure.spreadLines();
+    // pl_structure.test();
 }
 
 
@@ -471,11 +552,16 @@ void Frame::ExtractLine(const cv::Mat &im, double quant, double log_eps) {
     // bd_->compute(im, mvKeyLines, lineDescriptor);
 
     //lsd line && lbd descriptor
-    LineDescriptor lineDesc;
+    // LineDescriptor lineDesc;
     lineDesc.numOfOctave_ = 1;
     StdTime start;
-    lineDesc.GetLineDescriptor(im, scalelines, lsdparam, cfg["line_detect"]);
+    cv::Mat claheImg;
+    cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(3.0, cv::Size(8, 8));
+    clahe->apply(im, claheImg);
+    lineDesc.OctaveKeyLines(claheImg, pl_structure.scale_lines, lsdparam);
+    // lineDesc.GetLineDescriptor(claheImg, scalelines, lsdparam, cfg["line_detect"]);
     std::cout << (start[0]);
+    line_mask = std::move(lineDesc.line_mask);
 }
 
 void Frame::SetPose(cv::Mat Tcw)

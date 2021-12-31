@@ -47,19 +47,13 @@ struct Match {
     // rotation martrix set to counter_clock_wise
     Eigen::Matrix2d _R, inver_R;
     Eigen::Vector2d _T, inver_T;
+    cv::Mat transform = cv::Mat::zeros(2, 3, CV_64F);
     Match() {}
     Match(cv::Point p, double an, double coff):
         _position(p), _angle(an), _coff(coff){}
-    void setTR(double an, double tx, double ty) {
-        _R = Eigen::Rotation2D<double>(an);
-        bool invertible = false;
-        _R.computeInverseWithCheck(inver_R, invertible);
-        if (!invertible) {
-            std::cout << "error\n";
-        }
-        _T << tx, ty;
-        inver_T = _T;   
-    }
+    void setTR(double an, double tx, double ty);
+    cv::Point2f transPoint(const cv::Point2f &pt);
+    void transPoint(const std::vector<cv::Point2f> &input_pts, std::vector<cv::Point2f> &output_pts);
     friend std::ostream &operator<<(std::ostream &out, Match &A);
 };
 

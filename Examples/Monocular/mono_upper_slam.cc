@@ -174,7 +174,7 @@ int main(int argc, char **argv)
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     // readParameter<std::string>("vocabulary", vocabulary);
     vocabulary = HOME + "VO-LOAM/github/orb-slam3/Vocabulary/ORBvoc.bin";
-    ORB_SLAM3::System SLAM(vocabulary,yaml,ORB_SLAM3::System::MONOCULAR, true);
+    ORB_SLAM3::System SLAM(vocabulary,yaml,ORB_SLAM3::System::MONOCULAR, false);
 
     log_dir = root_path + "/log/camera" + std::to_string(type) + image_pro_map[debugmode] + std::to_string(winsize) + "/";
     // log_dir = root_path + "/log/camera" + std::to_string(type) + image_pro_map[debugmode] + std::to_string(winsize) + "/";
@@ -194,6 +194,7 @@ int main(int argc, char **argv)
             im = cv::imread(vstrImageFilenames[seq][ni],cv::IMREAD_UNCHANGED);
             double tframe = vTimestampsCam[seq][ni];
 
+            if (ni == 1 || ni == 2) continue;
             if(im.empty())
             {
                 cerr << endl << "Failed to load image at: "
@@ -211,7 +212,7 @@ int main(int argc, char **argv)
     #else
             std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
     #endif
-
+            
             // Pass the image to the SLAM system
             SLAM.TrackMonocular(im,tframe);
             google::ShutdownGoogleLogging();

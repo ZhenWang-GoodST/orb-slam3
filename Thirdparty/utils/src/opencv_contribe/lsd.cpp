@@ -164,7 +164,7 @@ namespace cv_contribe{
 class LineSegmentDetectorImpl : public LineSegmentDetector
 {
 public:
-    cv::Mat mask;
+    // cv::Mat mask;
 /**
  * Create a LineSegmentDetectorImpl object. Specifying scale, number of subdivisions for the image, should the lines be refined and other constants as follows:
  *
@@ -254,7 +254,7 @@ private:
     const double line_ratio;
     double line_length;
     const int N_BINS;
-    int thresh = 5;
+    int thresh = 1;
     uchar *mask_ptr; 
     const uchar UNMET = 255;
     const uchar EDGE = 0;
@@ -1327,7 +1327,8 @@ void LineSegmentDetectorImpl::mask_reion_grow(const rect &rec) {
     // mask.setTo(0);
     mask_ptr = mask.data; 
     for (int i = 0; i < boundary.size(); ++i) {
-        boundary[i] /= SCALE + border;
+        boundary[i].x = boundary[i].x / SCALE + border;
+        boundary[i].y = boundary[i].y / SCALE + border;
         if (boundary[i].x < 1 || boundary[i].x >= width - 1 ||
             boundary[i].y < 1 || boundary[i].y >= height - 1) {
             boundary.erase(boundary.begin() + i);
@@ -1339,10 +1340,10 @@ void LineSegmentDetectorImpl::mask_reion_grow(const rect &rec) {
         // cv::circle(mask, cv::Point2f(boundary[i].x, boundary[i].y), 1, EDGE, -1);
     }
     std::cout << rec.x1 << "\n";
-    cv::circle(mask, cv::Point2f(rec.x1, rec.y1), thresh * 3, VERTEX, -1);
-    cv::circle(mask, cv::Point2f(rec.x2, rec.y2), thresh * 3, VERTEX, -1);
+    cv::circle(mask, cv::Point2f(rec.x1, rec.y1), (thresh + 5) * 3, VERTEX, -1);
+    cv::circle(mask, cv::Point2f(rec.x2, rec.y2), (thresh + 5) * 3, VERTEX, -1);
     //给图像加上外边框，向外沿拓1，减少越界判断
-    for (int itration = 0; itration < 0; ++itration) {
+    for (int itration = 0; itration < thresh; ++itration) {
         new_boundary.clear();
         for (int i = 0; i < boundary.size(); ++i) {
             const cv::Point &pt = boundary[i];

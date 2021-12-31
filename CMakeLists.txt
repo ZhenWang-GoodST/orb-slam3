@@ -60,15 +60,15 @@ find_package(glog 0.6.0 REQUIRED)
 find_package(PCL REQUIRED)
 
 include_directories(
-${PROJECT_SOURCE_DIR}
-${PROJECT_SOURCE_DIR}/include
-${PROJECT_SOURCE_DIR}/include/CameraModels
-${EIGEN3_INCLUDE_DIR}
-${Pangolin_INCLUDE_DIRS}
-${PROJECT_SOURCE_DIR}/Thirdparty/utils/include
-${GLOG_INCLUDE_DIRS}
+  ${PROJECT_SOURCE_DIR}
+  ${PROJECT_SOURCE_DIR}/include
+  ${PROJECT_SOURCE_DIR}/include/CameraModels
+  ${EIGEN3_INCLUDE_DIR}
+  ${Pangolin_INCLUDE_DIRS}
+  ${PROJECT_SOURCE_DIR}/Thirdparty/utils/include
+  ${GLOG_INCLUDE_DIRS}
 )
-set(CMAKE_PREFIX_PATH /opt/ros/noetic)
+# set(CMAKE_PREFIX_PATH /opt/ros/noetic)
 # set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 find_package(catkin REQUIRED COMPONENTS
   roscpp sensor_msgs
@@ -78,6 +78,7 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/Thirdparty/utils/include
   ${PROJECT_SOURCE_DIR}/Thirdparty/utils/include/lbd_matcher
   ${PROJECT_SOURCE_DIR}/Thirdparty/utils/include/opencv_contribe
+  ${PROJECT_SOURCE_DIR}/Thirdparty/utils/include/optimizer
   ${catkin_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS} 
   ${EIGEN3_INCLUDE_DIR}
@@ -86,7 +87,7 @@ include_directories(
   ${CERES_INCLUDE_DIRS}
 # /home/wz/github/install/ceres_docker/include
 )
-message(STATUS ------- ${PCL_LIBRARIES} -------)
+message(STATUS ------- ${CERES_INCLUDE_DIRS}-------)
 SET(ARPACK_INCLUDE_DIR "/usr/include/arpack++")
 SET(ARPACK_LINK_DIR "/usr/lib")
 include_directories(${ARPACK_INCLUDE_DIR})
@@ -94,14 +95,15 @@ file(GLOB_RECURSE UTILS ${PROJECT_SOURCE_DIR}/Thirdparty/utils/src/*cpp)
 file(GLOB_RECURSE NODE_SRCS ${PROJECT_SOURCE_DIR}/Thirdparty/utils/src/*_node.cpp)
 file(GLOB_RECURSE UTILS_CONTRIBE ${PROJECT_SOURCE_DIR}/Thirdparty/utils/src/lbd_matcher/*cpp)
 file(GLOB_RECURSE UTILS_CONTRIBE ${PROJECT_SOURCE_DIR}/Thirdparty/utils/src/opencv_contribe/*cpp)
+file(GLOB_RECURSE UTILS_CONTRIBE ${PROJECT_SOURCE_DIR}/Thirdparty/utils/src/optimizer/*cpp)
 list(REMOVE_ITEM UTILS ${NODE_SRCS})
 add_library(utils ${UTILS} ${UTILS_CONTRIBE})
 target_link_libraries(utils 
-${CERES_LIBRARIES}
-${catkin_LIBRARIES}
-${OpenCV_LIBRARIES}
-${PCL_LIBRARIES}
-arpack /usr/lib/x86_64-linux-gnu/libsuperlu.so arpack++
+  ${CERES_LIBRARIES}
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+  ${PCL_LIBRARIES}
+  arpack /usr/lib/x86_64-linux-gnu/libsuperlu.so arpack++ -lgsl -lgslcblas -lm
 )
 
 add_library(${PROJECT_NAME} SHARED
