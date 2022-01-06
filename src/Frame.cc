@@ -361,6 +361,9 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
 	for (int i = 0; i < key_pts.size(); ++i) {
         pl_structure.scale_pts.points[i].push_back(key_pts[i]);
     }
+    // feature_detector = cv::cv_contribe::BRISK::create();
+    // cv::Mat briskdes;
+    // feature_detector->detectAndCompute(resi_im, cv::noArray(), key_pts, briskdes);
     // feature_detector->detectAndCompute(this->monoImage, line_mask, pl_structure.scale_pts, scale_descriptors);
     cv::imshow("mask", line_mask);
     for (int i = 0; i < key_pts.size(); ++i) {
@@ -448,16 +451,16 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
             cv::Rect bound = cv::Rect(i * rect_width + 2, j * rect_height + 2, rect_width - 4, rect_height - 4);
             // cv::rectangle(monoShowImage, bound, color);
             for (int k = 0; k < mGrid[i][j].size(); k++) {
-                if (mvKeys[mGrid[i][j][k]].octave > 3) continue;
+                // if (mvKeys[mGrid[i][j][k]].octave > 3) continue;
                 // cv::Rect rect = getRect(mvKeys[mGrid[i][j][k]].pt, mvKeys[mGrid[i][j][k]].octave * 3 + 2);
-                cv::Rect rect = getRect(mvKeys[mGrid[i][j][k]].pt, 3);
+                cv::Rect rect = getRect(mvKeys[mGrid[i][j][k]].pt, mvKeys[mGrid[i][j][k]].size);
                 cv::rectangle(monoShowImage, rect, color);
             }
         }
         
     }
-    // cv::imshow("monoShowImage", monoShowImage);
-    // cv::waitKey();
+    cv::imshow("monoShowImage", monoShowImage);
+    cv::waitKey();
     
     // pl_structure.loadData(mvKeysUn, scalelines);
     if(pPrevF)

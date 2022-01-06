@@ -241,6 +241,10 @@ add_executable(mono_upper_slam
 Examples/Monocular/mono_upper_slam.cc)
 target_link_libraries(mono_upper_slam ${PROJECT_NAME})
 
+add_executable(extrator_test
+test/test_extrator.cpp src/ORBextractor.cc)
+target_link_libraries(extrator_test ${PROJECT_NAME})
+
 # add_executable(mono_tum_vi
 # Examples/Monocular/mono_tum_vi.cc)
 # target_link_libraries(mono_tum_vi ${PROJECT_NAME})

@@ -74,7 +74,6 @@ namespace ORB_SLAM3
     const int HALF_PATCH_SIZE = 15;
     const int EDGE_THRESHOLD = 19;
 
-
     static float IC_Angle(const Mat& image, Point2f pt,  const vector<int> & u_max)
     {
         int m_01 = 0, m_10 = 0;
@@ -104,6 +103,9 @@ namespace ORB_SLAM3
         return fastAtan2((float)m_01, (float)m_10);
     }
 
+    float ORBextractor::calAngle(const cv::Mat& image, cv::Point2f pt) {
+        IC_Angle(image, pt, umax);
+    }
 
     const float factorPI = (float)(CV_PI/180.f);
     static void computeOrbDescriptor(const KeyPoint& kpt,
@@ -145,6 +147,9 @@ namespace ORB_SLAM3
         }
 
 #undef GET_VALUE
+    }
+    void ORBextractor::computeSingleOrbDescriptor(const cv::KeyPoint& kpt, const cv::Mat& img, uchar* desc) {
+        computeOrbDescriptor(kpt, img, &pattern[0], desc);
     }
 
 
@@ -1092,6 +1097,9 @@ namespace ORB_SLAM3
 
         // Pre-compute the scale pyramid
         ComputePyramid(image);
+        for (int level = 0; level < nlevels; ++level) {
+            cv::imwrite("/home/tonglu/VO-LOAM/github/output/right_level" + std::to_string(level) + ".png", mvImagePyramid[level]);
+        }
 
         vector < vector<KeyPoint> > allKeypoints;
         ComputeKeyPointsOctTree(allKeypoints);

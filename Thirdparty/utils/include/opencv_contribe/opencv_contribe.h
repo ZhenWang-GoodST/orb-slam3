@@ -7,7 +7,13 @@
 
 namespace cv {
 namespace cv_contribe {
-
+//来自4.2.0的关键字
+#ifndef CV_OVERRIDE
+#  define CV_OVERRIDE override
+#endif
+#ifndef CV_FINAL
+#  define CV_FINAL final
+#endif
 template <typename T>
 bool findXIntersection(const double x, const T& seg_a, const T& seg_b, T* pt) {
     if ((seg_a.x - x) * (seg_b.x - x) > 0) return false;
@@ -122,6 +128,130 @@ CV_EXPORTS_W Ptr<LineSegmentDetector> createLineSegmentDetector(
     double _log_eps = 0, double _density_th = 0.7, int _n_bins = 1024, double _length_ratio = 0.125);
 
 //! @} imgproc_feature
+
+
+
+//! @addtogroup features2d_main
+//! @{
+
+/** @brief Wrapping class for feature detection using the AGAST method. :
+ */
+class CV_EXPORTS_W AgastFeatureDetector : public Feature2D
+{
+public:
+    enum DetectorType
+    {
+        AGAST_5_8 = 0, AGAST_7_12d = 1, AGAST_7_12s = 2, OAST_9_16 = 3,
+    };
+
+    enum
+    {
+        THRESHOLD = 10000, NONMAX_SUPPRESSION = 10001,
+    };
+
+    CV_WRAP static Ptr<AgastFeatureDetector> create( int threshold=10,
+                                                     bool nonmaxSuppression=true,
+                                                     AgastFeatureDetector::DetectorType type = AgastFeatureDetector::OAST_9_16);
+
+    CV_WRAP virtual void setThreshold(int threshold) = 0;
+    CV_WRAP virtual int getThreshold() const = 0;
+
+    CV_WRAP virtual void setNonmaxSuppression(bool f) = 0;
+    CV_WRAP virtual bool getNonmaxSuppression() const = 0;
+
+    CV_WRAP virtual void setType(AgastFeatureDetector::DetectorType type) = 0;
+    CV_WRAP virtual AgastFeatureDetector::DetectorType getType() const = 0;
+    CV_WRAP virtual String getDefaultName() const CV_OVERRIDE;
+};
+
+/** @overload */
+CV_EXPORTS void AGAST( InputArray image, CV_OUT std::vector<KeyPoint>& keypoints,
+                      int threshold, bool nonmaxSuppression=true );
+
+/** @brief Detects corners using the AGAST algorithm
+
+@param image grayscale image where keypoints (corners) are detected.
+@param keypoints keypoints detected on the image.
+@param threshold threshold on difference between intensity of the central pixel and pixels of a
+circle around this pixel.
+@param nonmaxSuppression if true, non-maximum suppression is applied to detected corners
+(keypoints).
+@param type one of the four neighborhoods as defined in the paper:
+AgastFeatureDetector::AGAST_5_8, AgastFeatureDetector::AGAST_7_12d,
+AgastFeatureDetector::AGAST_7_12s, AgastFeatureDetector::OAST_9_16
+
+For non-Intel platforms, there is a tree optimised variant of AGAST with same numerical results.
+The 32-bit binary tree tables were generated automatically from original code using perl script.
+The perl script and examples of tree generation are placed in features2d/doc folder.
+Detects corners using the AGAST algorithm by @cite mair2010_agast .
+
+ */
+CV_EXPORTS void AGAST( InputArray image, CV_OUT std::vector<KeyPoint>& keypoints,
+                      int threshold, bool nonmaxSuppression, AgastFeatureDetector::DetectorType type );
+
+
+//! @addtogroup features2d_main
+//! @{
+
+/** @brief Class implementing the BRISK keypoint detector and descriptor extractor, described in @cite LCS11 .
+ */
+class CV_EXPORTS_W BRISK : public Feature2D
+{
+public:
+    /** @brief The BRISK constructor
+
+    @param thresh AGAST detection threshold score.
+    @param octaves detection octaves. Use 0 to do single scale.
+    @param patternScale apply this scale to the pattern used for sampling the neighbourhood of a
+    keypoint.
+     */
+    CV_WRAP static Ptr<BRISK> create(int thresh=30, int octaves=3, float patternScale=1.0f);
+
+    /** @brief The BRISK constructor for a custom pattern
+
+    @param radiusList defines the radii (in pixels) where the samples around a keypoint are taken (for
+    keypoint scale 1).
+    @param numberList defines the number of sampling points on the sampling circle. Must be the same
+    size as radiusList..
+    @param dMax threshold for the short pairings used for descriptor formation (in pixels for keypoint
+    scale 1).
+    @param dMin threshold for the long pairings used for orientation determination (in pixels for
+    keypoint scale 1).
+    @param indexChange index remapping of the bits. */
+    CV_WRAP static Ptr<BRISK> create(const std::vector<float> &radiusList, const std::vector<int> &numberList,
+        float dMax=5.85f, float dMin=8.2f, const std::vector<int>& indexChange=std::vector<int>());
+
+    /** @brief The BRISK constructor for a custom pattern, detection threshold and octaves
+
+    @param thresh AGAST detection threshold score.
+    @param octaves detection octaves. Use 0 to do single scale.
+    @param radiusList defines the radii (in pixels) where the samples around a keypoint are taken (for
+    keypoint scale 1).
+    @param numberList defines the number of sampling points on the sampling circle. Must be the same
+    size as radiusList..
+    @param dMax threshold for the short pairings used for descriptor formation (in pixels for keypoint
+    scale 1).
+    @param dMin threshold for the long pairings used for orientation determination (in pixels for
+    keypoint scale 1).
+    @param indexChange index remapping of the bits. */
+    CV_WRAP static Ptr<BRISK> create(int thresh, int octaves, const std::vector<float> &radiusList,
+        const std::vector<int> &numberList, float dMax=5.85f, float dMin=8.2f,
+        const std::vector<int>& indexChange=std::vector<int>());
+    CV_WRAP virtual String getDefaultName() const CV_OVERRIDE;
+
+    /** @brief Set detection threshold.
+    @param threshold AGAST detection threshold score.
+    */
+    CV_WRAP virtual void setThreshold(int threshold) { CV_UNUSED(threshold); return; }
+    CV_WRAP virtual int getThreshold() const { return -1; }
+
+    /** @brief Set detection octaves.
+    @param octaves detection octaves. Use 0 to do single scale.
+    */
+    CV_WRAP virtual void setOctaves(int octaves) { CV_UNUSED(octaves); return; }
+    CV_WRAP virtual int getOctaves() const { return -1; }
+};
+
 }
 
 }

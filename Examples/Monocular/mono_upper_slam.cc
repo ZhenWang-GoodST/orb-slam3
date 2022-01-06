@@ -194,7 +194,7 @@ int main(int argc, char **argv)
             im = cv::imread(vstrImageFilenames[seq][ni],cv::IMREAD_UNCHANGED);
             double tframe = vTimestampsCam[seq][ni];
 
-            if (ni == 1 || ni == 2) continue;
+            // if (ni == 1 || ni == 2) continue;
             if(im.empty())
             {
                 cerr << endl << "Failed to load image at: "

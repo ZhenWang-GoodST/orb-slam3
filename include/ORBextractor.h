@@ -43,7 +43,8 @@ public:
 class ORBextractor
 {
 public:
-    
+    float calAngle(const cv::Mat& image, cv::Point2f pt);
+    void computeSingleOrbDescriptor(const cv::KeyPoint& kpt, const cv::Mat& img, uchar* desc);
     enum {HARRIS_SCORE=0, FAST_SCORE=1 };
 
     ORBextractor(int nfeatures, float scaleFactor, int nlevels,
@@ -83,6 +84,7 @@ public:
     std::vector<cv::Mat> mvImagePyramid;
     void computerDescritor(const cv::Mat &image, std::vector<cv::KeyPoint> &keypoints, cv::Mat &descriptor);
 
+    std::vector<cv::Point> pattern;
 protected:
 
     void ComputePyramid(cv::Mat image);
@@ -91,7 +93,6 @@ protected:
                                            const int &maxX, const int &minY, const int &maxY, const int &nFeatures, const int &level);
 
     void ComputeKeyPointsOld(std::vector<std::vector<cv::KeyPoint> >& allKeypoints);
-    std::vector<cv::Point> pattern;
 
     int nfeatures;
     double scaleFactor;

@@ -902,6 +902,8 @@ void PairwiseLineMatching::MatchingResultFromPrincipalEigenvector_(
 	}
 	// out << matrix << "\n";
 	out.close();
+	if (eigenMap_.empty()) return;
+	
 	/*first try, start from the top element in eigenmap */
 	while (1)
 	{
