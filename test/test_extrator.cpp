@@ -16,6 +16,7 @@
 extern int bit_pattern_31_;
 const float factorPI = (float)(CV_PI/180.f);
 #define threshold 4
+#define UCHAR_DIF(a, b) (a > b ? (a - b) > threshold : (b - a) > threshold)
 static void computeOrbDescriptor(const cv::KeyPoint& kpt,
                                      const cv::Mat& img, const cv::Point* pattern,
                                      uchar* desc, uchar* mask)
@@ -33,38 +34,43 @@ static void computeOrbDescriptor(const cv::KeyPoint& kpt,
 
         for (int i = 0; i < 32; ++i, pattern += 16)
         {
-            int t0, t1, val, diff;
+            int t0, t1, val, dif;
             t0 = GET_VALUE(0); t1 = GET_VALUE(1);
             val = t0 < t1;
-            diff = std::abs(t0 - t1) > threshold;
+            dif = UCHAR_DIF(t0, t1);
             t0 = GET_VALUE(2); t1 = GET_VALUE(3);
             val |= (t0 < t1) << 1;
-            diff |= (std::abs(t0 - t1) > threshold) << 1;
+            dif |= ((bool)UCHAR_DIF(t0, t1)) << 1;
             t0 = GET_VALUE(4); t1 = GET_VALUE(5);
             val |= (t0 < t1) << 2;
-            diff |= (std::abs(t0 - t1) > threshold) << 2;
+            dif |= ((bool)UCHAR_DIF(t0, t1)) << 2;
             t0 = GET_VALUE(6); t1 = GET_VALUE(7);
             val |= (t0 < t1) << 3;
-            diff |= (std::abs(t0 - t1) > threshold) << 3;
+            dif |= ((bool)UCHAR_DIF(t0, t1)) << 3;
             t0 = GET_VALUE(8); t1 = GET_VALUE(9);
             val |= (t0 < t1) << 4;
-            diff |= (std::abs(t0 - t1) > threshold) << 4;
+            dif |= ((bool)UCHAR_DIF(t0, t1)) << 4;
             t0 = GET_VALUE(10); t1 = GET_VALUE(11);
             val |= (t0 < t1) << 5;
-            diff |= (std::abs(t0 - t1) > threshold) << 5;
+            dif |= ((bool)UCHAR_DIF(t0, t1)) << 5;
             t0 = GET_VALUE(12); t1 = GET_VALUE(13);
             val |= (t0 < t1) << 6;
-            diff |= (std::abs(t0 - t1) > threshold) << 6;
+            dif |= ((bool)UCHAR_DIF(t0, t1)) << 6;
             t0 = GET_VALUE(14); t1 = GET_VALUE(15);
             val |= (t0 < t1) << 7;
-            diff |= (std::abs(t0 - t1) > threshold) << 7;
+            dif |= ((bool)UCHAR_DIF(t0, t1)) << 7;
 
             desc[i] = (uchar)val;
-            mask[i] = diff;
+            mask[i] = dif;
         }
 
 #undef GET_VALUE
     }
+#define bitcount32(v, result_) v = v - ((v >> 1) & 0x55555555); \
+        v = (v & 0x33333333) + ((v >> 2) & 0x33333333); \
+        result_ += (((v + (v >> 4)) & 0xF0F0F0F) * 0x1010101) >> 24; 
+
+
 // Bit set count operation from
 // http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
 int DescriptorDistance(const cv::Mat &a, const cv::Mat &b)
@@ -140,7 +146,7 @@ int bitAndMask(unsigned int *a, unsigned int *b, unsigned int *mask, int length)
     }
     return count;
 }
-
+#undef bitcount32
 cv::Mat image1;
 cv::Mat image2;
 cv::Mat show_image1, show_image2;

@@ -99,6 +99,7 @@ struct ScalePoints
 	std::vector<std::vector<cv::KeyPoint>> points;
 	std::vector<cv::KeyPoint> keypoints;
 	cv::Mat descriptor;
+	cv::Mat mask_descriptor;
 };
 
 struct linematch_score

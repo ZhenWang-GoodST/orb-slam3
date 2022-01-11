@@ -148,6 +148,58 @@ namespace ORB_SLAM3
 
 #undef GET_VALUE
     }
+static void computeMaskOrbDescriptor(const cv::KeyPoint& kpt,
+                                     const cv::Mat& img, const cv::Point* pattern,
+                                     uchar* desc, uchar* mask)
+    {
+        float angle = (float)kpt.angle*factorPI;
+        float a = (float)cos(angle), b = (float)sin(angle);
+
+        const uchar* center = &img.at<uchar>(cvRound(kpt.pt.y), cvRound(kpt.pt.x));
+        const int step = (int)img.step;
+
+#define GET_VALUE(idx) \
+        center[cvRound(pattern[idx].x*b + pattern[idx].y*a)*step + \
+               cvRound(pattern[idx].x*a - pattern[idx].y*b)]
+#define MASK_THRESHOLD 4
+#define UCHAR_DIF(a, b) (a > b ? (a - b) > MASK_THRESHOLD : (b - a) > MASK_THRESHOLD)
+
+
+        for (int i = 0; i < 32; ++i, pattern += 16)
+        {
+            int t0, t1, val, dif;
+            t0 = GET_VALUE(0); t1 = GET_VALUE(1);
+            val = t0 < t1;
+            dif = UCHAR_DIF(t0, t1);
+            t0 = GET_VALUE(2); t1 = GET_VALUE(3);
+            val |= (t0 < t1) << 1;
+            dif |= ((bool)UCHAR_DIF(t0, t1)) << 1;
+            t0 = GET_VALUE(4); t1 = GET_VALUE(5);
+            val |= (t0 < t1) << 2;
+            dif |= ((bool)UCHAR_DIF(t0, t1)) << 2;
+            t0 = GET_VALUE(6); t1 = GET_VALUE(7);
+            val |= (t0 < t1) << 3;
+            dif |= ((bool)UCHAR_DIF(t0, t1)) << 3;
+            t0 = GET_VALUE(8); t1 = GET_VALUE(9);
+            val |= (t0 < t1) << 4;
+            dif |= ((bool)UCHAR_DIF(t0, t1)) << 4;
+            t0 = GET_VALUE(10); t1 = GET_VALUE(11);
+            val |= (t0 < t1) << 5;
+            dif |= ((bool)UCHAR_DIF(t0, t1)) << 5;
+            t0 = GET_VALUE(12); t1 = GET_VALUE(13);
+            val |= (t0 < t1) << 6;
+            dif |= ((bool)UCHAR_DIF(t0, t1)) << 6;
+            t0 = GET_VALUE(14); t1 = GET_VALUE(15);
+            val |= (t0 < t1) << 7;
+            dif |= ((bool)UCHAR_DIF(t0, t1)) << 7;
+
+            desc[i] = (uchar)val;
+            mask[i] = dif;
+        }
+
+#undef GET_VALUE
+#undef MASK_THRESHOLD
+    }
     void ORBextractor::computeSingleOrbDescriptor(const cv::KeyPoint& kpt, const cv::Mat& img, uchar* desc) {
         computeOrbDescriptor(kpt, img, &pattern[0], desc);
     }
@@ -1086,7 +1138,7 @@ namespace ORB_SLAM3
 #pragma GCC push_options
 #pragma GCC optimize (0)
     int ORBextractor::operator()( InputArray _image, InputArray _mask, vector<KeyPoint>& _keypoints,
-                                  OutputArray _descriptors, std::vector<int> &vLappingArea)
+                                  OutputArray _descriptors, std::vector<int> &vLappingArea, cv::OutputArray _orb_mask)
     {
         //cout << "[ORBextractor]: Max Features: " << nfeatures << endl;
         if(_image.empty())
@@ -1141,7 +1193,18 @@ namespace ORB_SLAM3
             // Compute the descriptors
             //Mat desc = descriptors.rowRange(offset, offset + nkeypointsLevel);
             Mat desc = cv::Mat(nkeypointsLevel, 32, CV_8U);
-            computeDescriptors(workingMat, keypoints, desc, pattern);
+            if (_orb_mask.needed()) {
+                _orb_mask.create(nkeypoints, 32, CV_8U);
+                cv::Mat orb_mask = _descriptors.getMat();
+                orb_mask = cv::Mat(nkeypointsLevel, 32, CV_8U);
+                desc = Mat::zeros((int)keypoints.size(), 32, CV_8UC1);
+                for (size_t i = 0; i < keypoints.size(); i++)
+                    computeMaskOrbDescriptor(keypoints[i], workingMat, &pattern[0], desc.ptr((int)i), orb_mask.ptr((int)i));
+                orb_mask.copyTo(_orb_mask);
+            } else {
+                computeDescriptors(workingMat, keypoints, desc, pattern);
+            }
+            
 
             offset += nkeypointsLevel;
 
@@ -1156,19 +1219,20 @@ namespace ORB_SLAM3
                     keypoint->pt *= scale;
                 }
 
-                if(keypoint->pt.x >= vLappingArea[0] && keypoint->pt.x <= vLappingArea[1]){
-                    _keypoints.at(stereoIndex) = (*keypoint);
-                    desc.row(i).copyTo(descriptors.row(stereoIndex));
-                    stereoIndex--;
-                }
-                else{
+                // if(keypoint->pt.x >= vLappingArea[0] && keypoint->pt.x <= vLappingArea[1]){
+                //     _keypoints.at(stereoIndex) = (*keypoint);
+                //     desc.row(i).copyTo(descriptors.row(stereoIndex));
+                //     stereoIndex--;
+                // }
+                // else{
                     _keypoints.at(monoIndex) = (*keypoint);
                     desc.row(i).copyTo(descriptors.row(monoIndex));
                     monoIndex++;
-                }
+                // }
                 i++;
             }
         }
+        std::cout << _orb_mask.getMat() << "\n";
         //cout << "[ORBextractor]: extracted " << _keypoints.size() << " KeyPoints" << endl;
         return monoIndex;
     }
