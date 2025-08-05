@@ -40,7 +40,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 
 LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
 # set(OpenCV_DIR "/home/tonglu/github/install/opencv3.2.0/share/OpenCV")
-set(OpenCV_DIR "/usr/local/lib/cmake/opencv4")
+set(OpenCV_DIR "/home/cvrsg/github/install/opencv4.2.0/lib/cmake/opencv4")
 # set(OpenCV_DIR "/home/wz/github/install/opencv3.2.0docker/share/OpenCV")
 find_package(OpenCV 4.2.0)
 if(NOT OpenCV_FOUND)

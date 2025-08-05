@@ -1,4 +1,4 @@
-path=/home/${USER}/VO-LOAM/github/orb-slam3
+path=/home/cvrsg/VO-LOAM/github/orb-slam3
 echo "Configuring and building Thirdparty/DBoW2 ..."
 rm -rf ${path}/Thirdparty/DBoW2/build/*
 rm -rf ${path}/Thirdparty/DBoW2/lib*

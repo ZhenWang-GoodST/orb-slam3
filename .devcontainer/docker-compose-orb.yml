@@ -1,8 +1,8 @@
 version: '3.3'
 services:
   orb-slam-service:
-    image: slam-orb:vscode-v0
-    container_name: slam-orb
+    image: ros:noetic
+    container_name: orb_slam
     privileged: true
     restart: "no"
     network_mode: "host"
@@ -12,7 +12,8 @@ services:
       - "DISPLAY"
       - QT_X11_NO_MITSHM=1
     volumes:
-      - /home/${USER}:/home/wz
+      - /home/${USER}:/home/cvrsg
+      - /media/cvrsg:/media/cvrsg
     # deploy:
     #   resources:
     #      limits:

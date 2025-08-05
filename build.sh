@@ -4,7 +4,7 @@ cd Thirdparty/DBoW2
 mkdir build
 cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release
-make -j4
+make -j16
 
 cd ../../g2o
 
@@ -13,7 +13,7 @@ echo "-----------------------------------------"
 mkdir build
 cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release
-make -j4
+make -j16
 
 # cd ../../utils
 
@@ -36,5 +36,6 @@ echo "Configuring and building ORB_SLAM3 ..."
 echo "-----------------------------------------"
 mkdir buildrelease
 cd buildrelease
+source /opt/ros/noetic/setup.bash
 cmake .. -DCMAKE_BUILD_TYPE=Release
 make -j16
